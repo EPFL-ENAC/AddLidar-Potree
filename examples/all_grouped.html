@@ -58,7 +58,63 @@
         style="
           background-image: url('../build/potree/resources/images/background.jpg');
         "
-      ></div>
+      >
+        <span
+          style="
+            position: absolute;
+            bottom: 10px;
+            right: 0;
+            transform: translateX(-50%);
+            background-color: white;
+            border-radius: 0.5em;
+            padding: 1em;
+            z-index: 10000;
+          "
+        >
+          <h3 style="margin: 0 0 0.5em 0; font-family: Arial; font-size: 1.2em">
+            Color Variable
+          </h3>
+          <form style="display: flex; flex-direction: column; gap: 0.5em">
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="rgba"
+                onclick="setActiveAttributeName('rgba')"
+              />
+              RGBA
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="classification"
+                onclick="setActiveAttributeName('classification')"
+              />
+              Classification
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="intensity"
+                onclick="setActiveAttributeName('intensity')"
+                checked
+              />
+              Intensity
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="elevation"
+                onclick="setActiveAttributeName('elevation')"
+              />
+              Elevation
+            </label>
+          </form>
+        </span>
+      </div>
       <div id="potree_sidebar_container"></div>
     </div>
 
@@ -107,17 +163,19 @@
         let pointcloud = e.pointcloud;
         let material = pointcloud.material;
 
-        {
-          {
-            /*  material.activeoad_project.htmlAttributeName = "rgba";  */
-          }
-        }
+        material.activeAttributeName = "intensity";
         material.minSize = 1;
         material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
 
         viewer.scene.addPointCloud(pointcloud);
         viewer.fitToScreen();
       });
+
+      window.setActiveAttributeName = function (name) {
+        let pointcloud = viewer.scene.pointclouds[0];
+        let material = pointcloud.material;
+        material.activeAttributeName = name;
+      };
     </script>
   </body>
 </html>
