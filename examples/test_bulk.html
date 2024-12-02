@@ -182,7 +182,8 @@
         material.activeAttributeName = "rgba";
 
         viewer.scene.addPointCloud(pointcloud);
-        viewer.fitToScreen();
+        viewer.scene.view.position.set(2572291, 1096850, 1958);
+        viewer.scene.view.lookAt(2572360, 1097496, 1787);
       });
 
       window.setActiveAttributeName = function (name) {
