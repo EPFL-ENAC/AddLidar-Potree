@@ -6,7 +6,6 @@ COPY examples ./examples
 COPY src ./src
 COPY libs ./libs
 COPY resources ./resources
-COPY pointclouds ./pointclouds
 COPY LICENSE ./LICENSE
 COPY docs ./docs
 COPY *.js ./
