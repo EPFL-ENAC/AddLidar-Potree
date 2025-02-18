@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download Card</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 300px;
+      }
+
+      .card h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      .form-group select,
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .form-group input:disabled {
+        background-color: #f0f0f0;
+        cursor: not-allowed;
+      }
+
+      .form-group button {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .form-group button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Download Data</h2>
+      <div class="form-group">
+        <label for="level">Select Level</label>
+        <select id="level">
+          <option value="0">Raw 3D laser vectors</option>
+          <option value="1">ALS Mounting and Calibration</option>
+          <option value="2">Refined Trajectory Point Cloud</option>
+          <option value="3">Geo-referenced Point Cloud</option>
+          <option value="4">Filtered/Denoised Point Cloud</option>
+          <option value="5">Basic Classification</option>
+          <option value="6">DTM/DSM/CHM</option>
+          <option value="7">Segmented Point Cloud</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="type">Type</label>
+        <select id="type">
+          <option value="traj">Trajectory</option>
+          <option value="pointcloud">Point Cloud</option>
+          <option value="metadata">Metadata</option>
+          <option value="DSM">DSM</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="format">Format</label>
+        <select id="format">
+          <option value="LAS">LAS</option>
+          <option value="LAZ">LAZ</option>
+          <option value="PCD">PCD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="epsg">EPSG Code</label>
+        <input type="number" id="epsg" placeholder="EPSG Code (optional)" />
+      </div>
+      <div class="form-group">
+        <label for="density">Density</label>
+        <input type="number" id="density" placeholder="Density (optional)" />
+      </div>
+      <div class="form-group">
+        <label for="area">Area (GeoJSON)</label>
+        <textarea
+          id="area"
+          placeholder="Enter GeoJSON area (e.g., 3D cube or 2D polygon)..."
+          rows="4"
+        ></textarea>
+      </div>
+      <div class="form-group">
+        <button id="download">Download</button>
+      </div>
+    </div>
+
+    <script>
+      const levelSelect = document.getElementById("level");
+
+      levelSelect.addEventListener("change", () => {
+        const selectedLevel = parseInt(levelSelect.value, 10);
+        // You can add logic here for enabling/disabling other inputs based on the level
+      });
+    </script>
+  </body>
+</html>

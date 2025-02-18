@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Potree Viewer</title>
+    <link rel="stylesheet" type="text/css" href="../build/potree/potree.css" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="../libs/jquery-ui/jquery-ui.min.css"
+    />
+    <link rel="stylesheet" type="text/css" href="../libs/openlayers3/ol.css" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="../libs/spectrum/spectrum.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="../libs/jstree/themes/mixed/style.css"
+    />
+
+    <style>
+      /* Styles for the download card overlay */
+      .right-column {
+        position: fixed;
+        background: white;
+        right: 0;
+        top: 0;
+        border-left: 1px solid #ddd;
+        padding: 30px;
+        height:100%;
+        width: 300px;
+        z-index: 10000;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .right-column h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+      .right-column .form-group {
+        margin-bottom: 15px;
+      }
+      .right-column .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      .right-column .form-group select,
+      .right-column .form-group input,
+      .right-column .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+      .right-column .form-group input:disabled {
+        background-color: #f0f0f0;
+        cursor: not-allowed;
+      }
+      .right-column .form-group button {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .right-column .form-group button:hover {
+        background-color: #0056b3;
+      }
+      /* Error message style */
+      #error-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fdd;
+        padding: 1em;
+        border: 1px solid red;
+        font-family: Arial, sans-serif;
+        display: none;
+        z-index: 10001;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="error-message"
+      style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgb(255, 218, 218);
+        padding: 1em;
+        border: 1px solid red;
+        font-family: Arial;
+        z-index: 10;
+        display: none;
+      "
+    ></div>
+    <script src="../libs/jquery/jquery-3.1.1.min.js"></script>
+    <script src="../libs/spectrum/spectrum.js"></script>
+    <script src="../libs/jquery-ui/jquery-ui.min.js"></script>
+    <script src="../libs/other/BinaryHeap.js"></script>
+    <script src="../libs/tween/tween.min.js"></script>
+    <script src="../libs/d3/d3.js"></script>
+    <script src="../libs/proj4/proj4.js"></script>
+    <script src="../libs/openlayers3/ol.js"></script>
+    <script src="../libs/i18next/i18next.js"></script>
+    <script src="../libs/jstree/jstree.js"></script>
+    <script src="../build/potree/potree.js"></script>
+    <script src="../libs/plasio/js/laslaz.js"></script>
+
+    <div
+      class="potree_container"
+      style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px"
+    >
+      <div id="potree_render_area" style="width: 100%; height: 100%">
+        
+        <div class="right-column">
+          <div class="card">
+            <h2>Download Data</h2>
+            <div class="form-group">
+              <label for="level">Select Level</label>
+              <select id="level">
+                <option value="0">Raw 3D laser vectors</option>
+                <option value="1">ALS Mounting and Calibration</option>
+                <option value="2">Refined Trajectory Point Cloud</option>
+                <option value="3">Geo-referenced Point Cloud</option>
+                <option value="4">Filtered/Denoised Point Cloud</option>
+                <option value="5">Basic Classification</option>
+                <option value="6">DTM/DSM/CHM</option>
+                <option value="7">Segmented Point Cloud</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="type">Type</label>
+              <select id="type">
+                <option value="traj">Trajectory</option>
+                <option value="pointcloud">Point Cloud</option>
+                <option value="metadata">Metadata</option>
+                <option value="DSM">DSM</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="format">Format</label>
+              <select id="format">
+                <option value="LAS">LAS</option>
+                <option value="LAZ">LAZ</option>
+                <option value="PCD">PCD</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="epsg">EPSG Code</label>
+              <input type="number" id="epsg" placeholder="EPSG Code (optional)" />
+            </div>
+            <div class="form-group">
+              <label for="density">Density</label>
+              <input type="number" id="density" placeholder="Density (optional)" />
+            </div>
+            <div class="form-group">
+              <label for="area">Area (GeoJSON)</label>
+              <textarea
+                id="area"
+                placeholder="Enter GeoJSON area (e.g., 3D cube or 2D polygon)..."
+                rows="4"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <button id="download">Download</button>
+            </div>
+          </div>
+         
+          <div
+        >
+          <h3 style="margin: 0 0 0.5em 0; font-family: Arial; font-size: 1.2em">
+            Color Variable
+          </h3>
+          <form style="display: flex; flex-direction: column; gap: 0.5em">
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="rgba"
+                onclick="setActiveAttributeName('rgba')"
+                checked
+              />
+              RGBA
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="classification"
+                onclick="setActiveAttributeName('classification')"
+              />
+              Classification
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="intensity"
+                onclick="setActiveAttributeName('intensity')"
+              />
+              Intensity
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="elevation"
+                onclick="setActiveAttributeName('elevation')"
+              />
+              Elevation
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="Group"
+                onclick="setActiveAttributeName('Group')"
+              />
+              Group
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="Normal"
+                onclick="setActiveAttributeName('Normal')"
+              />
+              Normal
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="Distance"
+                onclick="setActiveAttributeName('Distance')"
+              />
+              Distance
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attribute"
+                value="gps-time"
+                onclick="setActiveAttributeName('gps-time')"
+              />
+              GPS Time
+            </label>
+          </form>
+        </div>
+        </div>
+    
+      </div>
+      </div>
+      <div id="potree_sidebar_container"></div>
+    </div>
+
+    <script type="module">
+      import * as THREE from "../libs/three.js/build/three.module.js";
+
+      window.viewer = new Potree.Viewer(
+        document.getElementById("potree_render_area")
+      );
+      viewer.setEDLEnabled(true);
+      viewer.setFOV(60);
+      viewer.setPointBudget(1_000_000);
+      viewer.loadSettingsFromURL();
+      viewer.setDescription("");
+
+      viewer.loadGUI(() => {
+        viewer.setLanguage("en");
+        $("#menu_appearance").next().show();
+      });
+
+      // Retrieve point cloud URL from query parameter
+      const params = new URLSearchParams(window.location.search);
+      const pointcloud_id = params.get("id");
+
+      console.log("id", pointcloud_id);
+      // Helper for error display
+      function showError(message) {
+        const errorEl = document.getElementById("error-message");
+        errorEl.textContent = message;
+        errorEl.style.display = "block";
+      }
+      if (!pointcloud_id) {
+        showError(
+          'No point cloud id specified. Please provide a valid point cloud id using the "id" query parameter.'
+        );
+      } else {
+        try {
+          const pointCloudUrl = new URL(
+            `https://enacit4r-cdn.epfl.ch/AddLidar/${pointcloud_id}/metadata.json`
+          ); // Validate URL format
+          console.log("pointCloudUrl", pointCloudUrl.href);
+
+          Potree.loadPointCloud(pointCloudUrl.href)
+            .then((e) => {
+              let pointcloud = e.pointcloud;
+              let material = pointcloud.material;
+
+              material.activeAttributeName = "rgba";
+              material.minSize = 1;
+              material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+
+              viewer.scene.addPointCloud(pointcloud);
+              viewer.scene.view.position.set(2572291, 1096850, 1958);
+              viewer.scene.view.lookAt(2572360, 1097496, 1787);
+            })
+            .catch((err) => {
+              console.error(err);
+              showError("Failed to load point cloud from the provided URL.");
+            });
+        } catch (err) {
+          showError(
+            "The provided URL is not valid. Please provide a valid URL."
+          );
+        }
+      }
+
+      window.setActiveAttributeName = function (name) {
+        let pointcloud = viewer.scene.pointclouds[0];
+        let material = pointcloud.material;
+        material.activeAttributeName = name;
+      };
+
+
+      document.getElementById("download").addEventListener("click", async () => {
+        // Gather form inputs
+        const level = document.getElementById("level").value; // You can use this if required.
+        const type = document.getElementById("type").value;
+        const format = document.getElementById("format").value;
+        const epsg = document.getElementById("epsg").value;
+        const density = document.getElementById("density").value;
+        const area = document.getElementById("area").value; // assumed formatted as valid GeoJSON string
+        
+        // In this example, we assume "file_path" is derived from the pointcloud id.
+        // Adjust according to your actual file path in your mounted volume.
+        const params = new URLSearchParams();
+        params.append("file_path", `/AddLidar/${pointcloud_id}/data.las`);
+      
+        // Optional parameters – add if user provided a value
+        // For example, if "type" affects the API behavior, map it accordingly.
+        if (type) {
+          // If you need to remove attributes based on type, add logic here.
+          // e.g., if type === 'metadata' then remove all non-geometry attributes.
+          if(type === 'metadata'){
+            params.append("remove_all_attributes", "true");
+          }
+        }
+        if (format) {
+          params.append("format", format);
+        }
+        if (epsg) {
+          params.append("outcrs", epsg);
+        }
+        if (density) {
+          params.append("density", density);
+        }
+        if(area) {
+          params.append("roi", area);
+        }
+        
+        // For demonstration, you might add level or other parameters
+        // params.append("line", level);
+        
+        // Generate the full URL for the API request.
+        const url = `/process-point-cloud?${params.toString()}`;
+        console.log("Requesting: ", url);
+        
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Server error: ${response.statusText}`);
+          }
+          // Assuming the API returns the processed file (binary or JSON)
+          const blob = await response.blob();
+          // Create a download link to let user download the file
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = downloadUrl;
+          a.download = `${pointcloud_id}-processed.${format.toLowerCase()}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+          console.error("Download failed:", error);
+          alert("Failed to process the point cloud. " + error.message+"\n\nUsing this url :"+url);
+        }
+      });
+
+    </script>
+  </body>
+</html>

@@ -34,3 +34,7 @@ pointclouds/F
 *.key
 *.crt
 .env
+
+
+vueSrc/public/libs/*
+vueSrc/public/build/*
