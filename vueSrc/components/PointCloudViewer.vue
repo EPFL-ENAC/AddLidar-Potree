@@ -1,21 +1,38 @@
+<template>
+  <div>
+    <div
+      class="potree_container"
+      style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px"
+    >
+      <div id="potree_render_area" style="width: 100%; height: 100%">
+        <!-- Render error message if any -->
+        <ErrorMessage :message="errorMessage"> </ErrorMessage>
+      </div>
+    </div>
+    <div id="potree_sidebar_container"></div>
+  </div>
+</template>
+
 <script setup>
 // Import Three.js and Potree
 
 import { ref, onMounted } from "vue";
+import ErrorMessage from "./ErrorMessage.vue";
 // You may need to import Potree in a similar manner so it's available globally
 // e.g.: import Potree from '../../build/potree/potree.js';
 
-const errorMessage = ref("");
 const pointcloudId = new URLSearchParams(window.location.search).get("id");
+const errorMessage = ref("");
 
 function showError(message) {
   errorMessage.value = message;
+  console.error(message);
 }
 
 onMounted(() => {
   if (!pointcloudId) {
     showError(
-      'No point cloud id specified. Please provide a valid "id" query parameter.'
+      'No point cloud id specified. Please provide a valid "id" query parameter. <a href="/?id=data">Here\'s an example</a>'
     );
     return;
   }
@@ -59,7 +76,7 @@ onMounted(() => {
       });
   } catch (err) {
     showError("The provided URL is not valid. Please provide a valid URL.");
-    console.log(err);
+    console.error(err);
   }
 });
 
@@ -70,32 +87,3 @@ function setActiveAttributeName(name) {
   material.activeAttributeName = name;
 }
 </script>
-
-<template>
-  <div>
-    <div
-      class="potree_container"
-      style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px"
-    >
-      <div id="potree_render_area" style="width: 100%; height: 100%">
-        <!-- Render error message if any -->
-        <div
-          v-if="errorMessage"
-          id="error-message"
-          style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #fdd;
-            padding: 1em;
-            border: 1px solid red;
-          "
-        >
-          {{ errorMessage }}
-        </div>
-      </div>
-    </div>
-    <div id="potree_sidebar_container"></div>
-  </div>
-</template>

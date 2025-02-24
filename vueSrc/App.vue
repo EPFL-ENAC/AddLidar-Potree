@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import PointCloudViewer from "./components/PointCloudViewer.vue";
 </script>
 
