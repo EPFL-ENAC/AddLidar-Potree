@@ -28,6 +28,9 @@
     "vueSrc/**/*.d.ts",
     "vueSrc/**/*.ts",
     "vueSrc/**/*.tsx",
-    "vueSrc/**/*.vue"
+    "vueSrc/**/*.vue",
+    "vueSrc/**/*.d.js",
+    "vueSrc/**/*.js",
+    "vueSrc/**/*.jsx"
   ]
 }
