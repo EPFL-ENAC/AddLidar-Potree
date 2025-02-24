@@ -38,3 +38,4 @@ pointclouds/F
 
 vueSrc/public/libs/*
 vueSrc/public/build/*
+vueSrc/dist
