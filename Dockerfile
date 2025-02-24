@@ -2,12 +2,9 @@ FROM node:20-alpine as potree-build-stage
 WORKDIR /app
 COPY package*.json ./
 COPY npm-shrinkwrap.json ./
-COPY LICENSE ./LICENSE
-COPY examples ./examples
 COPY src ./src
 COPY libs ./libs
 COPY resources ./resources
-COPY docs ./docs
 COPY *.js ./
 COPY *.sh ./
 RUN npm ci

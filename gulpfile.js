@@ -8,9 +8,6 @@ const concat = require("gulp-concat");
 const connect = require("gulp-connect");
 const { watch } = gulp;
 
-const { createGithubPage } = require("./src/tools/create_github_page");
-const { createIconsPage } = require("./src/tools/create_icons_page");
-
 let paths = {
   laslaz: [
     "build/workers/laslaz-worker.js",
@@ -80,21 +77,6 @@ gulp.task(
   })
 );
 
-gulp.task("examples_page", async function (done) {
-  await Promise.all([
-    // createExamplesPage(),
-    // createGithubPage(),
-  ]);
-
-  done();
-});
-
-gulp.task("icons_viewer", async function (done) {
-  await createIconsPage();
-
-  done();
-});
-
 gulp.task("test", async function () {
   console.log("asdfiae8ofh");
 });
@@ -154,13 +136,7 @@ gulp.task("shaders", async function () {
 gulp.task(
   "build",
   gulp.series(
-    gulp.parallel(
-      "workers",
-      "lazylibs",
-      "shaders",
-      "icons_viewer",
-      "examples_page"
-    ),
+    gulp.parallel("workers", "lazylibs", "shaders"),
     async function (done) {
       gulp.src(paths.html).pipe(gulp.dest("build/potree"));
 
@@ -187,15 +163,6 @@ gulp.task("viteDev", (done) => {
   done();
 });
 
-// Vite build task (builds Vue files with Vite)
-gulp.task("viteBuild", (done) => {
-  exec("vite build", (err, stdout, stderr) => {
-    console.log(stdout);
-    console.error(stderr);
-    done(err);
-  });
-});
-
 gulp.task(
   "watch",
   gulp.parallel("build", "pack", "webserver", async function () {
@@ -207,7 +174,6 @@ gulp.task(
       "src/**/*.vs",
       "src/**/*.fs",
       "resources/**/*",
-      "examples//**/*.json",
       "!resources/icons/index.html",
     ];
 
