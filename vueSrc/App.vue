@@ -1,9 +1,9 @@
-<script setup>
-import PointCloudViewer from "./components/PointCloudViewer.vue";
+<script setup lang="ts">
+import MainView from "./views/MainView.vue";
 </script>
 
 <template>
-  <div class="app-container"><PointCloudViewer></PointCloudViewer></div>
+  <div class="app-container"><MainView /></div>
 </template>
 
 <style scoped></style>
