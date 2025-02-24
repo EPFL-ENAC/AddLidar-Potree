@@ -124,10 +124,12 @@ Stockage :
   - Mounts `smb://enac-nas1.rcp.epfl.ch/fts-addlidar/LiDAR/`.
   - Access is **read-only** and limited to the **API Wrapper**.
 
-- **Plant ULM definition :**
+<details>
 
-```
-  @startuml
+<summary>Plant UML definition</summary>
+
+```plantuml
+@startuml
   !pragma teoz true
   title AddLidar - High-Level Architecture
   skinparam componentStyle uml2
@@ -178,3 +180,5 @@ Stockage :
   Potree <-- API : Returns processed\nLiDAR for download
   @enduml
 ```
+
+</details>
