@@ -1,567 +1,180 @@
+# Add Lidar Specs
 
+## Project Overview
 
-# About
+The **AddLidar Project** is a web-based system for **storing, processing, and visualizing LiDAR datasets** collected from airborne missions. The goal is to provide researchers with an **efficient pipeline** to access, process, and visualize large LiDAR datasets via a Kubernetes-based infrastructure.
 
-* Potree is a free open-source WebGL based point cloud renderer for large point clouds. It is based on the [TU Wien Scanopy project](https://www.cg.tuwien.ac.at/research/projects/Scanopy/) and research projects [Harvest4D](https://harvest4d.org/), [GCD Doctoral College](https://gcd.tuwien.ac.at/) and [Superhumans](https://www.cg.tuwien.ac.at/research/projects/Superhumans/).
-* Newest information and work in progress is usually available on [twitter](https://twitter.com/m_schuetz)
-* Contact: Markus Schütz (mschuetz@potree.org)
-* References: 
-    * [Potree: Rendering Large Point Clouds in Web Browsers](https://www.cg.tuwien.ac.at/research/publications/2016/SCHUETZ-2016-POT/SCHUETZ-2016-POT-thesis.pdf) (2016)
-    * [Fast Out-of-Core Octree Generation for Massive Point Clouds](https://www.cg.tuwien.ac.at/research/publications/2020/SCHUETZ-2020-MPC/) (2020)
-    
-<a href="http://potree.org/wp/demo/" target="_blank"> ![](./docs/images/potree_screens.png) </a>
+The system consists of multiple components:
 
-# Getting Started
+- **MMGIS**: A web interface for managing missions, allowing researchers to manually input mission metadata and file locations.
+- **Potree**: A LiDAR visualization tool that loads pre-processed datasets from ENAC IT CDN.
+- **API Wrapper**: A REST API that converts user queries into commands for the
+- **LidarDataManager CLI:** A command-line tool for filtering, processing, and exporting LiDAR datasets.
 
-### Install on your PC
+Stockage :
 
-Install [node.js](http://nodejs.org/)
+- **NAS RCP**: The primary storage for raw LiDAR datasets.
+- **ENAC IT CDN**: Stores optimized datasets converted by **Potree Converter**.
+- **Kubernetes Infrastructure**: Hosts the API and ensures secure access to data.
 
-Install dependencies, as specified in package.json, and create a build in ./build/potree.
+## **Add Mission Workflow**
 
-```bash
-npm install
-```
+1. **Researcher Adds New Files (NAS RCP):**
 
-### Run on your PC
+   The researcher places new LiDAR files in the NAS RCP storage (e.g., `/LiDAR/0001_Mission_Root/...`).
 
-Use the `npm start` command to 
+2. **Enter Mission Metadata (MMGIS):**
 
-* create ./build/potree 
-* watch for changes to the source code and automatically create a new build on change
-* start a web server at localhost:1234. 
+   The researcher manually enters the mission’s metadata into **MMGIS**, including:
 
-Go to http://localhost:1234/examples/ to test the examples.
+   - Mission footprint in GeoJSON
+   - Flight date
+   - File path referencing the newly added LiDAR files on NAS RCP
 
-### Deploy to a server
+3. **Conversion & Upload (Potree Converter to ENAC IT CDN):**
+   - A batch job triggers **Potree Converter** once the new mission is registered in MMGIS. **TO DISCUSS**
+   - **Potree Converter** processes the LiDAR files and uploads the optimized dataset (e.g., `octree.bin`, `metadata.json`) to **ENAC IT CDN**, stored under a path like `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/`.
+4. **Mission Ready for Visualization:**
+   - **MMGIS** now includes a mission link pointing to the **Potree** web interface.
+   - Users can follow this link to view the newly added LiDAR dataset in Potree.
 
-* Simply upload the Potree folderm with all your point clouds, the build directory, and your html files to a web server.
-* It is not required to install node.js on your webserver. All you need is to host your files online. 
+## **Explore Missions Workflow**
 
-### Convert Point Clouds to Potree Format
+1. **Dataset Selection (MMGIS / Potree):**
+   - A user browses the mission list in **MMGIS** and selects a mission.
+   - The system provides a link to **Potree** for visualization.
+2. **Visualization (Potree from ENAC IT CDN):**
+   - **Potree** loads the pre-processed LiDAR files directly from **ENAC IT CDN** (e.g., `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/octree.bin`).
+   - The user can explore the dataset through Potree’s 3D viewer (pan, zoom, measure, etc.).
+3. **Request Processed Dataset (Potree Download Form):**
+   - Within Potree, the user can fill out the **download form** (filters, density, output format, ROI, etc.).
+   - Submitting the form sends these parameters as a request to the **API Wrapper** (REST endpoint).
+4. **On-Demand Processing (API Wrapper & LidarDataManager CLI):**
+   - **API Wrapper** receives the request, parses it, and translates it into a **LidarDataManager CLI** command.
+   - Since the CLI has read-only access to NAS RCP via a **Persistent Volume Claim (PVC)**, it executes the requested data transformation and returns a processed LiDAR file.
+5. **Download Processed Data:**
+   - The **API Wrapper** responds with the processed dataset.
+   - The user downloads the customized file through Potree’s interface.
+   - Progress bar ? Depending on performance of the CLI, a job queue or not.
 
-Download [PotreeConverter](https://github.com/potree/PotreeConverter) and run it like this:
+## Architecture
 
-    ./PotreeConverter.exe C:/pointclouds/data.las -o C:/pointclouds/data_converted
+### **MMGIS** ([AddLidar-MMGIS](https://addlidar-mmgis-dev.epfl.ch/))
 
-Copy the converted directory into &lt;potreeDirectory&gt;/pointclouds/data_converted. Then, duplicate and rename one of the examples and modify the path in the html file to your own point cloud.
+- Provides a user interface where researchers **manually input mission metadata**.
+- Each mission contains:
+  - **Footprint data** (GeoJSON format).
+  - **Date of flight**.
+  - **Relative path** to the dataset stored in **NAS RCP** (e.g., `/LiDAR/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`).
+- When a new mission is added, a **Job** must be executed to process the dataset with **Potree Converter** and store the converted files in **ENAC IT CDN**.
+- Provides mission links that point to **Potree**, enabling visualization of the dataset.
 
-# Downloads
+### **Potree** ([AddLidar-Potree](https://addlidar-potree.epfl.ch/) | [GitHub](https://github.com/EPFL-ENAC/AddLidar-Potree))
 
-* [Potree](https://github.com/potree/potree/releases)
-* [PotreeConverter ](https://github.com/potree/PotreeConverter/releases) - Convert your point cloud to the Potree format.
-* [PotreeDesktop ](https://github.com/potree/PotreeDesktop/releases) - Desktop version of Potree. Allows drag&drop of point clouds into the viewer.
+- **Visualizes LiDAR datasets** using **Octree-based rendering**.
+- Loads datasets **directly from ENAC IT CDN** (e.g., `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/octree.bin`).
+- Provides a **download form**, allowing users to request processed versions of the dataset.
 
-# Examples
+### **API Wrapper** ([GitHub](https://github.com/EPFL-ENAC/AddLidar-API))
 
-<table>
-	<tr>
-		<td style="padding: 0px">
-			<a href="http://potree.org/potree/examples/viewer.html" target="_blank">
-				<img src="examples/thumbnails/viewer.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/ca13.html" target="_blank">
-				<img src="examples/thumbnails/ca13.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/cesium_retz.html" target="_blank">
-				<img src="examples/thumbnails/cesium_retz.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/classifications.html" target="_blank">
-				<img src="examples/thumbnails/classifications.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/features_sorvilier.html" target="_blank">
-				<img src="examples/thumbnails/features_sorvilier.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/toolbar.html" target="_blank">
-				<img src="examples/thumbnails/toolbar.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Basic Viewer</th><th>CA13 (18 billion Points)</th><th>Retz (Potree + Cesium)</th><th>Classifications</th><th>Various Features</th><th>Toolbar</th>
-	</tr>
-</table>
+- Runs a **REST API** that:
+  - Parses **URL query parameters** from the **Potree download form**.
+  - Converts queries into **LidarDataManager CLI** commands.
+  - Mounts the NAS storage via **Persistent Volume Claim (PVC)** to access datasets.
+  - Provides processed **LiDAR dataset downloads** based on user-selected parameters.
+- **Storage Access**:
+  - The **PVC is read-only** and **only accessible from the API Wrapper**.
 
-<details>
-<summary>More Examples</summary>
+### **NAS RCP (LiDAR Storage)**
 
+- Primary storage server hosting all **raw LiDAR datasets**.
+- Organized into mission-specific folders following the format: `ID_NAME/`.
+- Contains multiple data subdirectories:
+  - **Raw data (`00_Raw_Lidar_SDC_Data/`)**
+  - **Processed data (`02_LASPCD/`)**
+  - **Metadata (`09_LAZ_FootPrints/`)**
+- Example file path: `/LiDAR/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`
 
-<table>
-	<tr>
-		<td>
-			<a href="http://potree.org/potree/examples/load_project.html" target="_blank">
-				<img src="examples/thumbnails/load_project.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/matcap.html" target="_blank">
-				<img src="examples/thumbnails/matcap.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="https://potree.org/potree/examples/vr_heidentor.html" target="_blank">
-				<img src="examples/thumbnails/heidentor.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/heidentor.html" target="_blank">
-				<img src="examples/thumbnails/heidentor.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/lion.html" target="_blank">
-				<img src="examples/thumbnails/lion.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/lion_las.html" target="_blank">
-				<img src="examples/thumbnails/lion_las.png" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Load Project</th><th>Matcap</th><th>Virtual Reality</th><th>Heidentor</th><th>Lion</th><th>Lion LAS</th>
-	</tr><tr>
-		<td>
-			<a href="http://potree.org/potree/examples/lion_laz.html" target="_blank">
-				<img src="examples/thumbnails/lion_las.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/ept.html" target="_blank">
-				<img src="examples/thumbnails/lion.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/ept_binary.html" target="_blank">
-				<img src="examples/thumbnails/lion_las.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/ept_zstandard.html" target="_blank">
-				<img src="examples/thumbnails/lion_las.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/clipping_volume.html" target="_blank">
-				<img src="examples/thumbnails/clipping_volume.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/oriented_images.html" target="_blank">
-				<img src="examples/thumbnails/oriented_images.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Lion LAZ</th><th>EPT</th><th>EPT Binary</th><th>EPT zstandard</th><th>Clipping Volume</th><th>Oriented Images</th>
-	</tr><tr>
-		<td>
-			<a href="http://potree.org/potree/examples/elevation_profile.html" target="_blank">
-				<img src="examples/thumbnails/elevation_profile.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/measurements.html" target="_blank">
-				<img src="examples/thumbnails/measurements.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/meshes.html" target="_blank">
-				<img src="examples/thumbnails/meshes.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/multiple_pointclouds.html" target="_blank">
-				<img src="examples/thumbnails/multiple_point_clouds.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/camera_animation.html" target="_blank">
-				<img src="examples/thumbnails/camera_animation.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/features_ca13.html" target="_blank">
-				<img src="examples/thumbnails/features_ca13.png" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Elevation Profile</th><th>Measurements</th><th>Meshes</th><th>Multiple Point Clouds</th><th>Camera Animation</th><th>Features (CA13)</th>
-	</tr><tr>
-		<td>
-			<a href="http://potree.org/potree/examples/annotations.html" target="_blank">
-				<img src="examples/thumbnails/annotations.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/annotation_hierarchy.html" target="_blank">
-				<img src="examples/thumbnails/annotation_hierarchy.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/animation_paths.html" target="_blank">
-				<img src="examples/thumbnails/animation_paths.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/shapefiles.html" target="_blank">
-				<img src="examples/thumbnails/shapefiles.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/cesium_ca13.html" target="_blank">
-				<img src="examples/thumbnails/cesium_ca13.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/geopackage.html" target="_blank">
-				<img src="examples/thumbnails/geopackage.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Annotations</th><th>Hierarchical Annotations</th><th>Animation Path</th><th>Shapefiles</th><th>Cesium CA13</th><th>Geopackage</th>
-	</tr><tr>
-		<td>
-			<a href="http://potree.org/potree/examples/cesium_sorvilier.html" target="_blank">
-				<img src="examples/thumbnails/cesium_sorvilier.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/custom_sidebar_section.html" target="_blank">
-				<img src="examples/thumbnails/custom_sidebar_section.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/embedded_iframe.html" target="_blank">
-				<img src="examples/thumbnails/embedded_iframe.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/gradient_colors.html" target="_blank">
-				<img src="examples/thumbnails/gradient_colors.png" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Cesium Sorvilier</th><th>Custom Sidebar Section</th><th>Embedded Iframe</th><th>Gradient Colors</th>
-	</tr>
-</table>
-</details>
+### **ENAC IT CDN (Processed LiDAR Storage)**
 
-# VR
+- Stores **Potree-processed datasets** for efficient web-based visualization.
+- Example file paths:
+  - `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/octree.bin`
+  - `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/metadata.json`
 
-<table>
-	<tr>
-		<td>
-			<a href="https://potree.org/potree/examples/vr_heidentor.html" target="_blank">
-				<img src="examples/thumbnails/heidentor.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="https://potree.org/potree/examples/vr_eclepens.html" target="_blank">
-				<img src="examples/thumbnails/eclepens.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="https://potree.org/potree/examples/vr_morro_bay.html" target="_blank">
-				<img src="examples/thumbnails/ca13.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="https://potree.org/potree/examples/vr_lion.html" target="_blank">
-				<img src="examples/thumbnails/lion.png" width="100%" />
-			</a>
-		</td><td>
-			<a href="https://potree.org/potree/examples/vr_dechen_cave.html" target="_blank">
-				<img src="examples/thumbnails/dechen_cave.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Heidentor</th><th>Eclepens</th><th>Morro Bay</th><th>Lion</th><th>Dechen Cave</th>
-	</tr>
-</table>
+### **LidarDataManager CLI** ([GitLab](https://gitlab.epfl.ch/topo/lidardatamanager))
 
-# Showcase
+- Command-line tool for **filtering, transforming, and exporting LiDAR data**.
+- Used by the **API Wrapper** to process datasets on demand.
+- Supports:
+  - Filtering attributes.
+  - Converting between formats (PCD, LAS v1.4, etc.).
+  - Selecting subsets of points (ROI, density filtering).
+  - Coordinate system transformations.
+- Example usage:
+  ```
+  ./lidarDataManager --format=lasv14 --density=10.0 --roi="100,200,300,50,50,50,0,0,0" --outcrs="EPSG:2056" /path/to/dataset.las
+  ```
 
-<table>
-	<tr>
-		<td>
-			<a href="http://potree.org/potree/examples/showcase/matterhorn.html" target="_blank">
-				<img src="examples/thumbnails/matterhorn.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/retz.html" target="_blank">
-				<img src="examples/thumbnails/retz.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/lake_tahoe.html" target="_blank">
-				<img src="examples/thumbnails/lake_tahoe.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/sorvilier.html" target="_blank">
-				<img src="examples/thumbnails/vol_total.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/grab_15.html" target="_blank">
-				<img src="examples/thumbnails/grab_15.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/tern_auscover_chowilla.html" target="_blank">
-				<img src="examples/thumbnails/chowilla.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Matterhorn</th><th>Retz</th><th>Lake Tahoe</th><th>Sorvilier</th><th>Grave</th><th>Chowilla</th>
-	</tr>
-</table>
+### **Kubernetes Infrastructure**
 
-<details>
-<summary>More</summary>
+- Hosts the **API Wrapper** and **Persistent Volume Claim (PVC)**.
+- **PVC Access**:
 
-<table>
-	<tr>
-		<td>
-			<a href="http://potree.org/potree/examples/showcase/chiller.html" target="_blank">
-				<img src="examples/thumbnails/chiller.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/cooler_tower.html" target="_blank">
-				<img src="examples/thumbnails/cooler_tower.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/dechen_cave.html" target="_blank">
-				<img src="examples/thumbnails/dechen_cave.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/doverMillRuins.html" target="_blank">
-				<img src="examples/thumbnails/DoverMillRuins.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/eclepens.html" target="_blank">
-				<img src="examples/thumbnails/eclepens.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/heidentor.html" target="_blank">
-				<img src="examples/thumbnails/heidentor.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Chiller</th><th>Cooler</th><th>Dechen Cave</th><th>Ruins</th><th>Eclepens</th><th>Heidentor</th>
-	</tr><tr>
-		<td>
-			<a href="http://potree.org/potree/examples/showcase/land_building.html" target="_blank">
-				<img src="examples/thumbnails/land_building.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/LDHI_module.html" target="_blank">
-				<img src="examples/thumbnails/LDHI_module.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/lion_head_simone_garagnani.html" target="_blank">
-				<img src="examples/thumbnails/lion_head.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/overpass.html" target="_blank">
-				<img src="examples/thumbnails/overpass.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/pielach.html" target="_blank">
-				<img src="examples/thumbnails/pielach.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/pompei.html" target="_blank">
-				<img src="examples/thumbnails/pompei.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Building</th><th>LDHI</th><th>Lion Head</th><th>Overpass</th><th>Pielach</th><th>pompei</th>
-	</tr><tr>
-		<td>
-			<a href="http://potree.org/potree/examples/showcase/santorini.html" target="_blank">
-				<img src="examples/thumbnails/santorini.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/skatepark.html" target="_blank">
-				<img src="examples/thumbnails/skatepark.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/subsea_equipment.html" target="_blank">
-				<img src="examples/thumbnails/subsea_equipment.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/subsea_manifold.html" target="_blank">
-				<img src="examples/thumbnails/subseamanifold.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/westend_palais.html" target="_blank">
-				<img src="examples/thumbnails/westend_palais.jpg" width="100%" />
-			</a>
-		</td><td>
-			<a href="http://potree.org/potree/examples/showcase/whitby.html" target="_blank">
-				<img src="examples/thumbnails/whitby.jpg" width="100%" />
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>Santorini</th><th>Skatepark</th><th>Subsea Eq.</th><th>Subsea Man.</th><th>Westend Palais</th><th>Whitby</th>
-	</tr>
-</table>
+  - Mounts `smb://enac-nas1.rcp.epfl.ch/fts-addlidar/LiDAR/`.
+  - Access is **read-only** and limited to the **API Wrapper**.
 
-</details>
-
-# Funding
-
-Potree is funded by a combination of research projects, companies and institutions. 
-
-Research projects who's funding contributes to Potree:
-
-<table>
-	<tr>
-		<th>Project Name</th>
-		<th>Funding Agency</th>
-	</tr>
-	<tr>
-		<td><a href="https://projekte.ffg.at/projekt/3851914">LargeClouds2BIM</a></td>
-		<td><a href="https://www.ffg.at/">FFG</a></td>
-	</tr>
-	<tr>
-		<td><a href="https://harvest4d.org/">Harvest4D</a></td>
-		<td><a href="https://ec.europa.eu/transport/themes/research/fp7_en">EU 7th Framework Program 323567</a></td>
-	</tr>
-	<tr>
-		<td><a href="https://gcd.tuwien.ac.at/">GCD Doctoral College</a></td>
-		<td><a href="https://www.tuwien.at/en/">TU Wien</a></td>
-	</tr>
-	<tr>
-		<td><a href="https://www.cg.tuwien.ac.at/research/projects/Superhumans/">Superhumans</a></td>
-		<td><a href="https://www.fwf.ac.at/">FWF</a></td>
-	</tr>
-</table>
-
-We would like to thank our sponsors for their financial contributions that keep this project up and running!
-
-<table>
-	<tr>
-		<th>
-			Diamond<br>
-			€ 15,000+
-		</th>
-		<td>
-			<a href="http://www.ne.ch/autorites/DDTE/SGRF/SITN/Pages/accueil.aspx">
-				<img src="docs/sponsors/sitn_logo.png" height="80px"/> &nbsp;
-			</a> &nbsp;
-			<a href="http://www.synth3d.co">
-				<img src="docs/sponsors/synth.png" height="120"/>
-			</a> &nbsp;
-			<a href="http://www.geocue.com">
-				<img src="docs/sponsors/geocue.png" height="120px"/>
-			</a> &nbsp;
-			<a href="http://rapidlasso.com">
-				<img src="./docs/sponsors/rapidlasso_square_256x2561.png" width="150" height="150"/>
-			</a> &nbsp;
-		</td>
-	</tr>
-	<tr>
-		<th>
-			Gold<br>
-			€ 10,000+
-		</th>
-		<td>
-			<a href="https://www.bart.gov">
-				<img src="docs/sponsors/bart.png" height="100"/>
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>
-			Silver<br>
-			€ 5,000+
-		</th>
-		<td>
-			<a href="https://www.skyebrowse.com/">
-				<img src="docs/sponsors/SkyeBrowse.png" height="60"/> &nbsp;
-			</a>
-			<a href="https://biology.anu.edu.au/research/facilities/australian-plant-phenomics-facility-anu">
-				<img src="docs/sponsors/APPF full logo.png" height="70"/> &nbsp;
-			</a>
-			<a href="https://www.limit-addict.fr/">
-				<img src="docs/sponsors/limitaddict.png" height="45"/>
-			</a>
-			<a href="http://georepublic.info">
-				<img src="docs/sponsors/georepublic.png" height="45"/>
-			</a>
-		</td>
-	</tr>
-	<tr>
-		<th>
-			Bronze<br>
-			€ 1,000+
-		</th>
-		<td>
-			<a href="https://www.kkc.co.jp/english/index.html/">
-				<img src="docs/sponsors/kokusaikogyo_logo_02.jpg" height="40"/> &nbsp;
-			</a>
-			<a href="https://www.unstruk.com/">
-				<img src="docs/sponsors/unstruk.png" height="33"/> &nbsp;
-			</a>
-			<a href="http://scanx.com/">
-				<img src="docs/sponsors/scanx.jpg" height="33"/> &nbsp;
-			</a>
-			<a href="https://www.phoenixlidar.com/">
-				<img src="docs/sponsors/PhoenixLidar_Logo.jpg" height="45"/> &nbsp;
-			</a>
-			<a href="https://www.eventart.at/">
-				<img src="docs/sponsors/eventart.png" height="55"/> &nbsp;
-			</a>
-			<a href="https://www.geodelta.com/">
-				<img src="docs/sponsors/geodelta.png" height="35"/> &nbsp;
-			</a>
-			<a href="https://www.e-cassini.fr/">
-				<img src="docs/sponsors/e_cassini.jpg" height="70"/> &nbsp;
-			</a>
-			<a href="https://www.sogelink.fr/">
-				<img src="docs/sponsors/SOGELINK_SO-EASY.png" height="40"/> &nbsp;
-			</a>
-			<b>Data-viewer</b>
-			<a href="http://www.helimap.com/">
-				<img src="docs/sponsors/helimap.gif" height="60"/> &nbsp;
-			</a>
-			<a href="http://www.vevey.ch/">
-				<img src="docs/sponsors/vevey.png" height="60"/> &nbsp;
-			</a>
-			<a href="https://www.yverdon-les-bains.ch/">
-				<img src="docs/sponsors/Logo-YLB.png" height="60"/> &nbsp;
-			</a>
-			<a href="http://archpro.lbg.ac.at">
-				<img src="docs/sponsors/archpro_EN_small.png" height="60"/> 
-			</a> &nbsp;
-			<br>
-			<a href="http://www.kts.co.jp">
-				<img src="docs/sponsors/kts.png" height="32"/> &nbsp;
-			</a>
-			<a href="http://veesus.com">
-				<img src="docs/sponsors/veesus_small.png" height="40"/> &nbsp;
-			</a>
-			<a href="http://www.sigeom.ch">
-				<img src="docs/sponsors/logo_sigeom.png" height="40"/> &nbsp;
-			</a>
-		</td>
-	</tr>
-</table>
-
-
-
-# Credits
-
-* The multi-res-octree algorithms used by this viewer were developed at the Vienna University of Technology by Michael Wimmer and Claus Scheiblauer as part of the [Scanopy Project](http://www.cg.tuwien.ac.at/research/projects/Scanopy/).
-* [Three.js](https://github.com/mrdoob/three.js), the WebGL 3D rendering library on which potree is built.
-* [plas.io](http://plas.io/) point cloud viewer. LAS and LAZ support have been taken from the laslaz.js implementation of plas.io. Thanks to [Uday Verma](https://twitter.com/udaykverma) and [Howard Butler](https://twitter.com/howardbutler) for this!
-* [Harvest4D](https://harvest4d.org/) Potree currently runs as Master Thesis under the Harvest4D Project
-* Christian Boucheny (EDL developer) and Daniel Girardeau-Montaut ([CloudCompare](http://www.danielgm.net/cc/)). The EDL shader was adapted from the CloudCompare source code!
-* [Martin Isenburg](http://rapidlasso.com/), [Georepublic](http://georepublic.de/en/),
-[Veesus](http://veesus.com/), [Sigeom Sa](http://www.sigeom.ch/), [SITN](http://www.ne.ch/sitn), [LBI ArchPro](http://archpro.lbg.ac.at/),  [Pix4D](http://pix4d.com/) as well as all the contributers to potree and PotreeConverter and many more for their support.
-
-# Bibtex 
+- **Plant ULM definition :**
 
 ```
-@article{SCHUETZ-2020-MPC,
-	title =      "Fast Out-of-Core Octree Generation for Massive Point Clouds",
-	author =     "Markus Schütz and Stefan Ohrhallinger and Michael Wimmer",
-	year =       "2020",
-	month =      nov,
-	journal =    "Computer Graphics Forum",
-	volume =     "39",
-	number =     "7",
-	doi =        "10.1111/cgf.14134",
-	pages =      "13",
-	publisher =  "John Wiley & Sons, Inc.",
-	pages =      "1--13",
-	keywords =   "point clouds, point-based rendering, level of detail",
-}
+  @startuml
+  !pragma teoz true
+  title AddLidar - High-Level Architecture
+  skinparam componentStyle uml2
+  skinparam component {
+  BackgroundColor<<K8S>> #F1F4FF
+  BackgroundColor<<Storage>> #F9F9F9
+  BackgroundColor<<Web>> #FFFCEF
+  BackgroundColor<<Service>> #EFFFEF
+  BorderColor #999999
+  FontColor #333333
+  }
+  rectangle "Kubernetes" <<K8S>> as K8S {
+  component "API Wrapper" <<Service>> as API
+  component "LidarDataManager CLI" <<Service>> as CLI
+  note bottom of API
+  • Exposes REST endpoints
+  • Translates user requests into CLI commands
+  • Connects to read-only PVC
+  end note
+  note bottom of CLI
+  • Command-line LiDAR processing
+  • Called by API Wrapper
+  • Reads from NAS via PVC
+  end note
+  }
+  rectangle "External Storage" <<Storage>> as EXT {
+  folder "NAS RCP\n(Raw LiDAR)" <<Storage>> as NAS
+  folder "ENAC IT CDN\n(Processed LiDAR)" <<Storage>> as CDN
+  }
+  component "MMGIS" <<Web>> as MMGIS
+  component "Potree" <<Web>> as Potree
+  ' Relationships
+  MMGIS -[hidden]-> NAS
+  MMGIS -[hidden]-> Potree
+  Potree -[hidden]-> CDN
+  Potree -[hidden]-> API
+  API -[hidden]-> CLI
+  CLI -[hidden]-> NAS
+  API -[hidden]-> CDN
+  ' Render visible lines with labels
+  MMGIS --> NAS : 1) Path references\nRaw LiDAR
+  MMGIS --> Potree : 2) Link to 3D viewer
+  Potree --> CDN : Loads pre-processed\noctree data
+  Potree --> API : Requests on-demand\nprocessing
+  API --> CLI : Translates REST calls\nto CLI commands
+  CLI --> NAS : Reads raw LiDAR\n(read-only via PVC)
+  API --> CDN : (Optional) Upload or\nupdate processed data
+  Potree <-- API : Returns processed\nLiDAR for download
+  @enduml
 ```
