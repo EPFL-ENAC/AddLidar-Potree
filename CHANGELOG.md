@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0](https://github.com/EPFL-ENAC/AddLidar-Potree/compare/v0.1.0...v0.2.0) (2025-02-24)
+
+
+### Features
+
+* enhance README with collapsible Plant UML definition ([d83141f](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/d83141f9929f01bac69e8c29f78f1b2df1a69ed8))
+
+## Changelog
+
 ### Features
 
 - add download data form ([6b4755f](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/6b4755f69878d42a430374fd0ec4255392ae35a5))
