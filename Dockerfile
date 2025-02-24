@@ -12,7 +12,7 @@ COPY *.js ./
 COPY *.sh ./
 RUN npm ci
 # COPY .env ./
-RUN npm run build
+RUN npm run build-potree
 
 
 FROM node:20-alpine as vue-build-stage
@@ -27,7 +27,7 @@ COPY *.ts ./
 COPY *.json ./
 RUN npm ci
 # COPY .env ./
-RUN npx vite build
+RUN npm run build
 
 
 
