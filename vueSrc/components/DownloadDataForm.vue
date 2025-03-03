@@ -29,7 +29,7 @@
         />
 
         <q-btn
-          label="Generate processing request"
+          label="Generate download request"
           class="100"
           size="md"
           outline
