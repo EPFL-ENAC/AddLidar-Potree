@@ -30,4 +30,13 @@ export default defineConfig({
       ),
     }),
   ],
+  server: {
+    proxy: {
+      "/api": {
+        target: "https://addlidar-potree-dev.epfl.ch",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });

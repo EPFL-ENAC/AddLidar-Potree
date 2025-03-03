@@ -87,3 +87,9 @@ function setActiveAttributeName(name) {
   material.activeAttributeName = name;
 }
 </script>
+
+<style scoped>
+.potree_container {
+  z-index: 1;
+}
+</style>

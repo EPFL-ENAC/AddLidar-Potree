@@ -1,70 +1,80 @@
 <template>
-  <q-card class="q-pa-md download-card" bordered style="width: 300px">
+  <q-card class="q-pa-md download-card" bordered style="width: 400px">
     <q-card-section>
       <div class="text-h6">Download Data</div>
     </q-card-section>
-    <q-form @submit.prevent="downloadData">
-      <q-card-section class="q-pa-sm">
+    <q-card-section>
+      <q-form class="q-gutter-md" @submit="downloadData">
         <q-select
-          filled
+          v-model="level"
+          outlined
+          disable
           label="Select Level"
-          v-model="form.level"
           :options="levelOptions"
         />
         <q-select
-          filled
+          outlined
+          disable
           label="Type"
-          v-model="form.type"
+          v-model="type"
           :options="typeOptions"
         />
         <q-select
-          filled
+          outlined
           label="Format"
-          v-model="form.format"
+          v-model="format"
           :options="formatOptions"
         />
         <q-input
-          filled
+          outlined
+          disable
           type="number"
           label="EPSG Code"
-          v-model="form.epsg"
+          v-model="epsg"
           placeholder="EPSG Code (optional)"
         />
         <q-input
-          filled
+          outlined
+          disable
           type="number"
           label="Density"
-          v-model="form.density"
+          v-model="density"
           placeholder="Density (optional)"
         />
         <q-input
-          filled
+          outlined
+          disable
           type="textarea"
           label="Area (GeoJSON)"
-          v-model="form.area"
+          v-model="area"
           placeholder="Enter GeoJSON area..."
           autogrow
           rows="4"
         />
-      </q-card-section>
-      <q-card-actions align="right">
         <q-btn label="Download" type="submit" color="primary" />
-      </q-card-actions>
-    </q-form>
+      </q-form>
+    </q-card-section>
+
+    <q-card-actions align="right"> </q-card-actions>
   </q-card>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 
-const form = ref({
-  level: "0",
-  type: "traj",
-  format: "LAS",
-  epsg: "",
-  density: "",
-  area: "",
-});
+const formatOptions = [
+  { label: "PCD ASCII", value: "pcd-ascii" },
+  { label: "PCD Binary", value: "pcd-bin" },
+  { label: "LAS v1.4", value: "lasv14" },
+  { label: "LAS v1.3", value: "lasv13" },
+  { label: "LAS v1.2", value: "lasv12" },
+];
+
+const type = ref("traj");
+const format = ref(formatOptions[0]);
+const epsg = ref("");
+const density = ref("");
+const area = ref("");
 
 const levelOptions = [
   { label: "Raw 3D laser vectors", value: "0" },
@@ -77,6 +87,8 @@ const levelOptions = [
   { label: "Segmented Point Cloud", value: "7" },
 ];
 
+const level = ref(levelOptions[0]);
+
 const typeOptions = [
   { label: "Trajectory", value: "traj" },
   { label: "Point Cloud", value: "pointcloud" },
@@ -84,40 +96,42 @@ const typeOptions = [
   { label: "DSM", value: "DSM" },
 ];
 
-const formatOptions = [
-  { label: "LAS", value: "LAS" },
-  { label: "LAZ", value: "LAZ" },
-  { label: "PCD", value: "PCD" },
-];
+const prefixPath = "/api";
 
 async function downloadData() {
   const params = new URLSearchParams();
-  // Assume the pointcloudId is defined (consider passing it as a prop if needed)
   const pointcloudId = "defaultid"; // Replace with a prop or computed value
 
-  params.append("file_path", `/AddLidar/${pointcloudId}/data.las`);
+  // Updated file_path parameter base path
+  params.append(
+    "file_path",
+    "/LiDAR/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las"
+  );
 
-  if (form.value.type) {
-    if (form.value.type === "metadata") {
-      params.append("remove_all_attributes", "true");
-    }
-    params.append("type", form.value.type);
+  // If type is metadata, add removal of all non-geometry attributes
+  if (type.value === "metadata") {
+    params.append("remove_all_attributes", "true");
   }
-  if (form.value.format) {
-    params.append("format", form.value.format);
-  }
-  if (form.value.epsg) {
-    params.append("outcrs", form.value.epsg);
-  }
-  if (form.value.density) {
-    params.append("density", form.value.density);
-  }
-  if (form.value.area) {
-    params.append("roi", form.value.area);
-  }
-  params.append("level", form.value.level);
+  // Removed type parameter
 
-  const url = `/process-point-cloud?${params.toString()}`;
+  if (format.value) {
+    params.append("format", format.value.value);
+  }
+  if (epsg.value) {
+    params.append("outcrs", epsg.value);
+  }
+  if (density.value) {
+    params.append("density", density.value);
+  }
+  if (area.value) {
+    params.append("roi", area.value);
+  }
+  // Replace the "level" parameter with "returns"
+  // params.append("returns", (10).toString());
+  params.append("number", (1).toString());
+
+  console.log("Params for download :", params.values(), params.toString());
+  const url = prefixPath + `/process-point-cloud?${params.toString()}`;
   console.log("Requesting:", url);
 
   try {
@@ -129,7 +143,7 @@ async function downloadData() {
     const downloadUrl = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = downloadUrl;
-    a.download = `${pointcloudId}-processed.${form.value.format.toLowerCase()}`;
+    a.download = `${pointcloudId}-processed.${format.value.value}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -149,13 +163,13 @@ async function downloadData() {
 <style scoped>
 /* Add additional custom styles as needed */
 .download-card {
-  position: fixed;
+  position: absolute;
   background: white;
   right: 0;
   top: 0;
   height: 100%;
   width: 300px;
-  z-index: 10000;
+  z-index: 2;
   box-sizing: border-box;
   font-family: Arial, sans-serif;
   display: flex;
