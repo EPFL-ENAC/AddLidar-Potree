@@ -1,7 +1,48 @@
 <template>
-  <q-card class="q-pa-md download-card" bordered style="width: 400px">
-    <q-card-section>
-      <div class="text-h6">Download Data</div>
+  <q-card
+    class="q-pa-md download-card column justify-around"
+    bordered
+    style="width: 300px"
+  >
+    <q-card-section class="">
+      <div class="text-h6 q-pb-md">Download Data Options :</div>
+      <q-form class="q-gutter-md" @submit="downloadData">
+        <q-select
+          outlined
+          label="Format"
+          v-model="format"
+          :options="formatOptions"
+        />
+        <q-select
+          outlined
+          label="EPSG Code"
+          :options="epsgOptions"
+          v-model="epsg"
+          placeholder="EPSG Code (optional)"
+        />
+        <q-input
+          outlined
+          type="number"
+          label="Number of points"
+          v-model="number"
+          placeholder="Number of points (optional)"
+        />
+
+        <q-btn
+          label="Generate processing request"
+          class="100"
+          size="md"
+          outline
+          type="submit"
+          color="primary"
+          :loading="processing"
+        >
+          <template v-slot:loading>
+            <q-spinner-gears class="on-left" />
+            Backend processing...
+          </template>
+        </q-btn>
+      </q-form>
     </q-card-section>
     <q-card-section class="q-gutter-md">
       <h3 class="text-h6">Not yet implemented :</h3>
@@ -39,33 +80,6 @@
         autogrow
         rows="4"
       />
-    </q-card-section>
-    <q-card-section>
-      <h3 class="text-h6">Options :</h3>
-      <q-form class="q-gutter-md" @submit="downloadData">
-        <q-select
-          outlined
-          label="Format"
-          v-model="format"
-          :options="formatOptions"
-        />
-        <q-select
-          outlined
-          label="EPSG Code"
-          :options="epsgOptions"
-          v-model="epsg"
-          placeholder="EPSG Code (optional)"
-        />
-        <q-input
-          outlined
-          type="number"
-          label="Number of points"
-          v-model="number"
-          placeholder="Number of points (optional)"
-        />
-
-        <q-btn label="Download" type="submit" color="primary" />
-      </q-form>
     </q-card-section>
   </q-card>
 </template>
@@ -111,6 +125,8 @@ const typeOptions = [
 
 const prefixPath = "/api";
 
+const processing = ref(false);
+
 async function downloadData() {
   const params = new URLSearchParams();
   const pointcloudId = "defaultid"; // Replace with a prop or computed value
@@ -139,6 +155,7 @@ async function downloadData() {
   console.log("Requesting:", url);
 
   try {
+    processing.value = true;
     const response = await fetch(url);
     console.log("Response:", response);
     if (!response.ok) {
@@ -146,6 +163,8 @@ async function downloadData() {
     }
     const blob = await response.blob();
     console.log("Blob:", blob);
+    processing.value = false;
+
     const downloadUrl = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = downloadUrl;
@@ -159,6 +178,7 @@ async function downloadData() {
     a.remove();
     window.URL.revokeObjectURL(downloadUrl);
   } catch (error: any) {
+    processing.value = false;
     console.error("Download failed:", error);
     alert(
       "Failed to process the point cloud. " +
