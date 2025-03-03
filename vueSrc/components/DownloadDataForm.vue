@@ -64,10 +64,10 @@ import { ref } from "vue";
 
 const formatOptions = [
   { label: "PCD ASCII", value: "pcd-ascii" },
-  { label: "PCD Binary", value: "pcd-bin" },
+  // { label: "PCD Binary", value: "pcd-bin" },
   { label: "LAS v1.4", value: "lasv14" },
-  { label: "LAS v1.3", value: "lasv13" },
-  { label: "LAS v1.2", value: "lasv12" },
+  // { label: "LAS v1.3", value: "lasv13" },
+  // { label: "LAS v1.2", value: "lasv12" },
 ];
 
 const type = ref("traj");
