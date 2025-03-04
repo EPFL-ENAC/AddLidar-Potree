@@ -98,6 +98,10 @@ import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
 import RangeFilter from "@/components/RangeFilter.vue";
 import { ref } from "vue";
 
+const pointcloudFilename = new URLSearchParams(window.location.search).get(
+  "filename"
+);
+
 const formatOptions = [
   { label: "PCD ASCII", value: "pcd-ascii" },
   // { label: "PCD Binary", value: "pcd-bin" },
@@ -144,7 +148,8 @@ async function downloadData() {
   // Updated file_path parameter base path
   params.append(
     "file_path",
-    "/LiDAR/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las"
+    pointcloudFilename ??
+      "/LiDAR/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las"
   );
 
   // If type is metadata, add removal of all non-geometry attributes
