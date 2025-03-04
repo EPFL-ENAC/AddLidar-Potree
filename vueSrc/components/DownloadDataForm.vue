@@ -50,7 +50,7 @@
     </q-card-section>
 
     <q-card-section>
-      <range-filter max="10" />
+      <range-filter :max="10" />
     </q-card-section>
 
     <q-card-section class="q-gutter-md">
