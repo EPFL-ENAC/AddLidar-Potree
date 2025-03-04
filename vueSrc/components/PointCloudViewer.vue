@@ -15,19 +15,37 @@
 
 <script setup>
 // Import Three.js and Potree
-
-import { ref, onMounted } from "vue";
+import { usePointCloudStore } from "@/stores/pointcloud";
+import { ref, onMounted, watch } from "vue";
 import ErrorMessage from "./ErrorMessage.vue";
-// You may need to import Potree in a similar manner so it's available globally
-// e.g.: import Potree from '../../build/potree/potree.js';
+import ColorVariableSelector from "./ColorVariableSelector.vue";
 
+const store = usePointCloudStore();
 const pointcloudId = new URLSearchParams(window.location.search).get("id");
 const errorMessage = ref("");
+const pointcloudLoaded = ref(false);
 
 function showError(message) {
   errorMessage.value = message;
   console.error(message);
 }
+
+// Function to change the active attribute
+function onAttributeChange(attributeName) {
+  if (window.viewer && window.viewer.scene.pointclouds.length > 0) {
+    const pointcloud = window.viewer.scene.pointclouds[0];
+    const material = pointcloud.material;
+    material.activeAttributeName = attributeName;
+  }
+}
+
+watch(
+  () => store.activeAttribute,
+  (newValue) => {
+    console.log("New attribute", newValue);
+    onAttributeChange(newValue);
+  }
+);
 
 onMounted(() => {
   if (!pointcloudId) {
@@ -62,13 +80,16 @@ onMounted(() => {
         console.log("point cloud loaded", e);
         const pointcloud = e.pointcloud;
         const material = pointcloud.material;
-        material.activeAttributeName = "rgba";
+        material.activeAttributeName = store.activeAttribute;
         material.minSize = 1;
         material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
         // Add pointcloud to the viewer scene
         window.viewer.scene.addPointCloud(pointcloud);
         window.viewer.scene.view.position.set(2572291, 1096850, 1958);
         window.viewer.scene.view.lookAt(2572360, 1097496, 1787);
+
+        // Mark pointcloud as loaded
+        pointcloudLoaded.value = true;
       })
       .catch((err) => {
         console.error(err);
@@ -80,12 +101,10 @@ onMounted(() => {
   }
 });
 
-// Global function for attribute switching:
-function setActiveAttributeName(name) {
-  const pointcloud = window.viewer.scene.pointclouds[0];
-  const material = pointcloud.material;
-  material.activeAttributeName = name;
-}
+// Provide the global setActiveAttributeName function for backward compatibility
+window.setActiveAttributeName = function (name) {
+  onAttributeChange(name);
+};
 </script>
 
 <style scoped>

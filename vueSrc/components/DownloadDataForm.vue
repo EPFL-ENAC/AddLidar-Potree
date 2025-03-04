@@ -44,6 +44,11 @@
         </q-btn>
       </q-form>
     </q-card-section>
+
+    <q-card-section>
+      <color-variable-selector />
+    </q-card-section>
+
     <q-card-section class="q-gutter-md">
       <h3 class="text-h6">Not yet implemented :</h3>
       <q-select
@@ -85,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
 import { ref } from "vue";
 
 const formatOptions = [
@@ -129,7 +135,6 @@ const processing = ref(false);
 
 async function downloadData() {
   const params = new URLSearchParams();
-  const pointcloudId = "defaultid"; // Replace with a prop or computed value
 
   // Updated file_path parameter base path
   params.append(

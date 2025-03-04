@@ -1,5 +1,6 @@
 import { createApp } from "vue";
 import { Quasar } from "quasar";
+import { createPinia } from "pinia"; // Import createPinia
 
 // Import icon libraries
 import "@quasar/extras/material-icons/material-icons.css";
@@ -11,7 +12,13 @@ import "quasar/src/css/index.sass";
 // and placed in same folder as main.js
 import App from "@/App.vue";
 
+// Create Pinia instance
+const pinia = createPinia();
+
 const myApp = createApp(App);
+
+// Use Pinia
+myApp.use(pinia);
 
 myApp.use(Quasar, {
   plugins: {}, // import Quasar plugins and add here
