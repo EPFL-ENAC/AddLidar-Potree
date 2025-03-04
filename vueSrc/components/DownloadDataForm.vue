@@ -49,6 +49,10 @@
       <color-variable-selector />
     </q-card-section>
 
+    <q-card-section>
+      <range-filter max="10" />
+    </q-card-section>
+
     <q-card-section class="q-gutter-md">
       <h3 class="text-h6">Not yet implemented :</h3>
       <q-select
@@ -91,6 +95,7 @@
 
 <script setup lang="ts">
 import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
+import RangeFilter from "@/components/RangeFilter.vue";
 import { ref } from "vue";
 
 const formatOptions = [

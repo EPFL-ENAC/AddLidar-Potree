@@ -47,6 +47,14 @@ watch(
   }
 );
 
+watch(
+  () => [store.filterMin, store.filterMax],
+  ([newMin, newMax]) => {
+    console.log("Filtering source ID", newMin, newMax);
+    window.viewer.setFilterPointSourceIDRange(newMin, newMax);
+  }
+);
+
 onMounted(() => {
   if (!pointcloudId) {
     showError(
