@@ -36,6 +36,8 @@ export default defineConfig({
         target: "https://addlidar-potree-dev.epfl.ch",
         changeOrigin: true,
         secure: false,
+        ws: true,
+        rewriteWsOrigin: true,
       },
     },
   },

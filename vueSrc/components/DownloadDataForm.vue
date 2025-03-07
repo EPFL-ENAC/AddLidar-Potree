@@ -4,9 +4,9 @@
     bordered
     style="width: 300px"
   >
-    <q-card-section class="">
-      <div class="text-h6 q-pb-md">Download Data Options :</div>
-      <q-form class="q-gutter-md" @submit="downloadData">
+    <q-card-section>
+      <div class="text-h6 q-pb-md">Download Data Options:</div>
+      <q-form class="q-gutter-md" @submit.prevent="onSubmit">
         <q-select
           outlined
           label="Format"
@@ -29,7 +29,7 @@
         />
 
         <q-btn
-          label="Generate download request"
+          label="Generate processing request"
           class="100"
           size="md"
           outline
@@ -39,10 +39,93 @@
         >
           <template v-slot:loading>
             <q-spinner-gears class="on-left" />
-            Backend processing...
+            Starting job...
           </template>
         </q-btn>
       </q-form>
+    </q-card-section>
+
+    <!-- Status and progress section -->
+    <q-card-section v-if="currentJob">
+      <div class="text-h6">Job Status</div>
+      <div class="q-mt-sm">
+        <div class="row items-center">
+          <div class="col">
+            <div><strong>Job ID:</strong> {{ currentJob.job_name }}</div>
+            <div><strong>Status:</strong> {{ jobStatus }}</div>
+            <div v-if="jobProgress > 0">
+              <strong>Progress:</strong>
+              {{ Math.floor(jobProgress * 100) }}%
+            </div>
+          </div>
+          <div class="col-auto">
+            <!-- Show checkmark when job is complete -->
+            <q-icon
+              v-if="
+                jobStatus === 'Complete' || jobStatus === 'SuccessCriteriaMet'
+              "
+              name="check_circle"
+              color="primary"
+              size="md"
+              class="q-ml-md"
+            />
+            <!-- Show error icon when there's an error -->
+            <q-icon
+              v-else-if="jobStatus === 'Error'"
+              name="error"
+              color="negative"
+              size="md"
+              class="q-ml-md"
+            />
+            <!-- Show indeterminate progress otherwise -->
+            <q-circular-progress
+              v-else
+              size="md"
+              indeterminate
+              color="secondary"
+              track-color="grey-3"
+              class="q-ml-md"
+            />
+          </div>
+        </div>
+
+        <q-btn
+          v-if="jobStatus === 'Complete' || jobStatus === 'SuccessCriteriaMet'"
+          label="Download File"
+          outline
+          color="primary"
+          class="q-mt-md full-width"
+          @click="downloadResult"
+        />
+
+        <q-btn
+          v-else-if="jobStatus !== 'Error'"
+          label="Check Status"
+          color="secondary"
+          outline
+          class="q-mt-md full-width"
+          @click="checkJobStatus"
+          :loading="checkingStatus"
+        />
+      </div>
+    </q-card-section>
+
+    <!-- Status log (can be expanded/collapsed) -->
+    <q-card-section v-if="statusLogs.length">
+      <q-expansion-item label="Status Log" header-class="text-primary">
+        <q-card>
+          <q-card-section class="status-log q-pa-sm">
+            <div
+              v-for="(log, index) in statusLogs"
+              :key="index"
+              class="log-item"
+            >
+              <span class="text-caption">{{ log.time }}:</span>
+              {{ log.message }}
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-expansion-item>
     </q-card-section>
 
     <q-card-section>
@@ -52,161 +135,69 @@
     <q-card-section>
       <range-filter :max="10" />
     </q-card-section>
-
-    <q-card-section class="q-gutter-md">
-      <h3 class="text-h6">Not yet implemented :</h3>
-      <q-select
-        v-model="level"
-        outlined
-        disable
-        label="Select Level"
-        :options="levelOptions"
-      />
-      <q-select
-        outlined
-        disable
-        label="Type"
-        v-model="type"
-        :options="typeOptions"
-      />
-
-      <q-input
-        outlined
-        disable
-        type="number"
-        label="Density"
-        v-model="density"
-        placeholder="Density (optional)"
-      />
-
-      <q-input
-        outlined
-        disable
-        type="textarea"
-        label="Area (GeoJSON)"
-        v-model="area"
-        placeholder="Enter GeoJSON area..."
-        autogrow
-        rows="4"
-      />
-    </q-card-section>
   </q-card>
 </template>
 
 <script setup lang="ts">
 import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
 import RangeFilter from "@/components/RangeFilter.vue";
-import { ref } from "vue";
+import { ref, onBeforeUnmount } from "vue";
+import { formatOptions, epsgOptions, type SelectOption } from "@/utils/api";
+import useDownloadService from "@/utils/useDownloadService";
+import type { JobParams } from "@/utils/useDownloadService";
 
-const pointcloudFilename = new URLSearchParams(window.location.search).get(
-  "filename"
-);
+// Keep the entire service instance available
+const downloadService = useDownloadService();
 
-const formatOptions = [
-  { label: "PCD ASCII", value: "pcd-ascii" },
-  // { label: "PCD Binary", value: "pcd-bin" },
-  { label: "LAS v1.4", value: "lasv14" },
-  // { label: "LAS v1.3", value: "lasv13" },
-  // { label: "LAS v1.2", value: "lasv12" },
-];
-const levelOptions = [
-  { label: "Raw 3D laser vectors", value: "0" },
-  { label: "ALS Mounting and Calibration", value: "1" },
-  { label: "Refined Trajectory Point Cloud", value: "2" },
-  { label: "Geo-referenced Point Cloud", value: "3" },
-  { label: "Filtered/Denoised Point Cloud", value: "4" },
-  { label: "Basic Classification", value: "5" },
-  { label: "DTM/DSM/CHM", value: "6" },
-  { label: "Segmented Point Cloud", value: "7" },
-];
+// Extract frequently used properties
+const {
+  processing,
+  currentJob,
+  closeConnection,
+  jobStatus,
+  jobProgress,
+  statusLogs,
+  startJob,
+  downloadResult,
+  checkJobStatus,
+  checkingStatus,
+} = downloadService;
 
-const epsgOptions = ["EPSG:4326", "EPSG:3857", "EPSG:2056"];
-
+// Form values
 const type = ref("traj");
-const format = ref(null);
-const epsg = ref(null);
+const format = ref<SelectOption | undefined>(undefined);
+const epsg = ref<string | undefined>(undefined);
 const density = ref("");
 const area = ref("");
 const number = ref(1000);
 
-const level = ref(levelOptions[0]);
+// Function to handle form submission
+function onSubmit(): void {
+  // Create params object from form values
+  const params: JobParams = {
+    file_path:
+      "/LiDAR/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las", // Default path
+    format: format.value ? format.value.value : undefined,
+    number: parseInt(number.value as any),
+  };
 
-const typeOptions = [
-  { label: "Trajectory", value: "traj" },
-  { label: "Point Cloud", value: "pointcloud" },
-  { label: "Metadata", value: "metadata" },
-  { label: "DSM", value: "DSM" },
-];
+  // Add optional parameters if they exist
+  if (epsg.value) params.outcrs = epsg.value;
+  if (density.value) params.density = density.value;
+  if (area.value) params.roi = area.value;
 
-const prefixPath = "/api";
+  // If type is metadata, add special flag
+  if (type.value === "metadata") params.remove_all_attributes = true;
 
-const processing = ref(false);
-
-async function downloadData() {
-  const params = new URLSearchParams();
-
-  // Updated file_path parameter base path
-  params.append(
-    "file_path",
-    pointcloudFilename ??
-      "/LiDAR/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las"
-  );
-
-  // If type is metadata, add removal of all non-geometry attributes
-  if (type.value === "metadata") params.append("remove_all_attributes", "true");
-
-  if (format.value) params.append("format", format.value);
-
-  if (epsg.value) params.append("outcrs", epsg.value);
-
-  if (density.value) params.append("density", density.value);
-
-  if (area.value) params.append("roi", area.value);
-
-  if (number.value) params.append("number", number.value.toString());
-
-  console.log("Params for download :", params.values(), params.toString());
-  const url = prefixPath + `/process-point-cloud?${params.toString()}`;
-  console.log("Requesting:", url);
-
-  try {
-    processing.value = true;
-    const response = await fetch(url);
-    console.log("Response:", response);
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.statusText}`);
-    }
-    const blob = await response.blob();
-    console.log("Blob:", blob);
-    processing.value = false;
-
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    const header = response.headers.get("Content-Disposition");
-    const parts = header!.split(";");
-    const filename = parts[1].split("=")[1];
-    a.download = filename || "output_pointcloud";
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (error: any) {
-    processing.value = false;
-    console.error("Download failed:", error);
-    alert(
-      "Failed to process the point cloud. " +
-        error.message +
-        "\n\nUsing this url: " +
-        url
-    );
-  }
+  // Call the startJob function with our params
+  startJob(params);
 }
+
+// Clean up WebSocket connection when component is destroyed
+onBeforeUnmount(closeConnection);
 </script>
 
 <style scoped>
-/* Add additional custom styles as needed */
 .download-card {
   position: absolute;
   background: white;
@@ -219,5 +210,23 @@ async function downloadData() {
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+}
+
+.status-log {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #f5f5f5;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.log-item {
+  padding: 2px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.log-item:last-child {
+  border-bottom: none;
 }
 </style>
