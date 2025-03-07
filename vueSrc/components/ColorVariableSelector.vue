@@ -1,11 +1,12 @@
 <template>
   <div>
-    <div class="text-h6">Color Variable</div>
-    <q-option-group
-      v-model="selectedAttribute"
-      :options="attributeOptions"
-      type="radio"
-    />
+    <q-expansion-item label="Color Variable" header-class="h2">
+      <q-option-group
+        v-model="selectedAttribute"
+        :options="attributeOptions"
+        type="radio"
+      />
+    </q-expansion-item>
   </div>
 </template>
 
