@@ -20,10 +20,13 @@ import { ref, onMounted, watch } from "vue";
 import ErrorMessage from "./ErrorMessage.vue";
 import ColorVariableSelector from "./ColorVariableSelector.vue";
 
-const store = usePointCloudStore();
 const pointcloudId = new URLSearchParams(window.location.search).get("id");
 const errorMessage = ref("");
 const pointcloudLoaded = ref(false);
+
+const pointcloudStore = usePointCloudStore();
+
+const volume = ref(null);
 
 function showError(message) {
   errorMessage.value = message;
@@ -40,7 +43,7 @@ function onAttributeChange(attributeName) {
 }
 
 watch(
-  () => store.activeAttribute,
+  () => pointcloudStore.activeAttribute,
   (newValue) => {
     console.log("New attribute", newValue);
     onAttributeChange(newValue);
@@ -48,12 +51,26 @@ watch(
 );
 
 watch(
-  () => [store.filterMin, store.filterMax],
+  () => [pointcloudStore.filterMin, pointcloudStore.filterMax],
   ([newMin, newMax]) => {
     console.log("Filtering source ID", newMin, newMax);
     window.viewer.setFilterPointSourceIDRange(newMin, newMax);
   }
 );
+
+function onClipChanged({ type, object }) {
+  pointcloudStore.setClipPosition(object.position);
+  pointcloudStore.setClipRotation(object.rotation.toVector3());
+  pointcloudStore.setClipScale(object.scale);
+}
+
+function onVolumeAdded({ scene, volume }) {
+  console.log("Volume added", scene, volume);
+
+  volume.addEventListener("scale_changed", onClipChanged);
+  volume.addEventListener("orientation_changed", onClipChanged);
+  volume.addEventListener("position_changed", onClipChanged);
+}
 
 onMounted(() => {
   if (!pointcloudId) {
@@ -74,7 +91,6 @@ onMounted(() => {
 
   viewer.loadGUI(() => {
     viewer.setLanguage("en");
-    $("#menu_appearance").next().show();
   });
   try {
     const pointCloudUrl = new URL(
@@ -88,13 +104,14 @@ onMounted(() => {
         console.log("point cloud loaded", e);
         const pointcloud = e.pointcloud;
         const material = pointcloud.material;
-        material.activeAttributeName = store.activeAttribute;
+        material.activeAttributeName = pointcloudStore.activeAttribute;
         material.minSize = 1;
         material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
         // Add pointcloud to the viewer scene
         window.viewer.scene.addPointCloud(pointcloud);
         window.viewer.scene.view.position.set(2572291, 1096850, 1958);
         window.viewer.scene.view.lookAt(2572360, 1097496, 1787);
+        window.viewer.scene.addEventListener("volume_added", onVolumeAdded);
 
         // Mark pointcloud as loaded
         pointcloudLoaded.value = true;
@@ -117,6 +134,5 @@ window.setActiveAttributeName = function (name) {
 
 <style scoped>
 .potree_container {
-  z-index: 1;
 }
 </style>

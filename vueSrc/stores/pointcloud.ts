@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 export const usePointCloudStore = defineStore("pointCloud", () => {
   // State as refs
@@ -11,6 +11,37 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   // Single filter range for current attribute
   const filterMin = ref(0);
   const filterMax = ref(100);
+
+  const clipPosition = ref({ x: 0, y: 0, z: 0 });
+  const clipRotation = ref({ x: 0, y: 0, z: 0 });
+  const clipScale = ref({ x: 1, y: 1, z: 1 });
+
+  watch(
+    clipPosition,
+    (newVal) => {
+      console.log("clipPosition changed", newVal);
+    },
+    { deep: true }
+  );
+
+  // Methods to update clip properties (maintains reactivity)
+  function setClipPosition(position: { x: number; y: number; z: number }) {
+    clipPosition.value.x = position.x;
+    clipPosition.value.y = position.y;
+    clipPosition.value.z = position.z;
+  }
+
+  function setClipRotation(rotation: { x: number; y: number; z: number }) {
+    clipRotation.value.x = rotation.x;
+    clipRotation.value.y = rotation.y;
+    clipRotation.value.z = rotation.z;
+  }
+
+  function setClipScale(scale: { x: number; y: number; z: number }) {
+    clipScale.value.x = scale.x;
+    clipScale.value.y = scale.y;
+    clipScale.value.z = scale.z;
+  }
 
   // Actions as functions
   function setActiveAttribute(attributeName: string) {
@@ -61,7 +92,13 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     filterMin,
     filterMax,
 
+    clipRotation,
+    clipPosition,
+    clipScale,
     // Actions
+    setClipPosition,
+    setClipRotation,
+    setClipScale,
     setActiveAttribute,
     setPointcloudId,
     setErrorMessage,

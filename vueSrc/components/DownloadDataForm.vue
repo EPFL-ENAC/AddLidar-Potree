@@ -127,6 +127,79 @@
         </q-card>
       </q-expansion-item>
     </q-card-section>
+    <!-- New section to display clip variables -->
+    <q-card-section>
+      <q-expansion-item
+        label="Clip Box Properties"
+        header-class="text-primary"
+        icon="crop_3d"
+        default-opened
+      >
+        <q-card>
+          <q-card-section>
+            <div class="text-subtitle2 q-mb-sm">Position</div>
+            <div class="col q-mb-sm">
+              <div class="col">
+                <q-badge color="blue" outline
+                  >X: {{ clipPosition.x.toFixed(2) }}</q-badge
+                >
+              </div>
+              <div class="col">
+                <q-badge color="green" outline
+                  >Y: {{ clipPosition.y.toFixed(2) }}</q-badge
+                >
+              </div>
+              <div class="col">
+                <q-badge color="red" outline
+                  >Z: {{ clipPosition.z.toFixed(2) }}</q-badge
+                >
+              </div>
+            </div>
+
+            <div class="text-subtitle2 q-mb-sm">Rotation (deg)</div>
+            <div class="col q-mb-sm">
+              <div class="col">
+                <q-badge color="blue" outline
+                  >X:
+                  {{ ((clipRotation.x * 180) / Math.PI).toFixed(1) }}°</q-badge
+                >
+              </div>
+              <div class="col">
+                <q-badge color="green" outline
+                  >Y:
+                  {{ ((clipRotation.y * 180) / Math.PI).toFixed(1) }}°</q-badge
+                >
+              </div>
+              <div class="col">
+                <q-badge color="red" outline
+                  >Z:
+                  {{ ((clipRotation.z * 180) / Math.PI).toFixed(1) }}°</q-badge
+                >
+              </div>
+            </div>
+
+            <div class="text-subtitle2 q-mb-sm">Scale</div>
+            <div class="col">
+              <div class="col">
+                <q-badge color="blue" outline
+                  >X: {{ clipScale.x.toFixed(2) }}</q-badge
+                >
+              </div>
+              <div class="col">
+                <q-badge color="green" outline
+                  >Y: {{ clipScale.y.toFixed(2) }}</q-badge
+                >
+              </div>
+              <div class="col">
+                <q-badge color="red" outline
+                  >Z: {{ clipScale.z.toFixed(2) }}</q-badge
+                >
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-expansion-item>
+    </q-card-section>
 
     <q-card-section>
       <color-variable-selector />
@@ -145,6 +218,10 @@ import { ref, onBeforeUnmount } from "vue";
 import { formatOptions, epsgOptions, type SelectOption } from "@/utils/api";
 import useDownloadService from "@/utils/useDownloadService";
 import type { JobParams } from "@/utils/useDownloadService";
+import { usePointCloudStore } from "@/stores/pointcloud";
+
+const store = usePointCloudStore();
+const { clipPosition, clipRotation, clipScale } = store;
 
 // Keep the entire service instance available
 const downloadService = useDownloadService();
