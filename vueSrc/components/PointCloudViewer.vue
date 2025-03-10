@@ -73,6 +73,7 @@ function onVolumeAdded({ scene, volume }) {
 }
 
 onMounted(() => {
+  console.log("Point cloud mounted", pointcloudId);
   if (!pointcloudId) {
     showError(
       'No point cloud id specified. Please provide a valid "id" query parameter. <a href="/?id=data">Here\'s an example</a>'
@@ -88,6 +89,8 @@ onMounted(() => {
   viewer.setPointBudget(1_000_000);
   viewer.loadSettingsFromURL();
   viewer.setDescription("");
+  console.log(viewer);
+  pointcloudStore.setVolumeTool(viewer.volumeTool);
 
   viewer.loadGUI(() => {
     viewer.setLanguage("en");
@@ -131,8 +134,3 @@ window.setActiveAttributeName = function (name) {
   onAttributeChange(name);
 };
 </script>
-
-<style scoped>
-.potree_container {
-}
-</style>

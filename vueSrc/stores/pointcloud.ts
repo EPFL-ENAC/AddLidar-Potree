@@ -1,12 +1,16 @@
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { ref } from "vue";
 
 export const usePointCloudStore = defineStore("pointCloud", () => {
   // State as refs
-  const activeAttribute = ref("rgba");
+  const activeAttribute = ref("intensity");
   const pointcloudLoaded = ref(false);
   const pointcloudId = ref<string | null>(null);
   const errorMessage = ref("");
+
+  const volumeTool = ref<
+    { startInsertion?: (params: any) => void } | undefined
+  >(undefined);
 
   // Single filter range for current attribute
   const filterMin = ref(0);
@@ -16,13 +20,10 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   const clipRotation = ref({ x: 0, y: 0, z: 0 });
   const clipScale = ref({ x: 1, y: 1, z: 1 });
 
-  watch(
-    clipPosition,
-    (newVal) => {
-      console.log("clipPosition changed", newVal);
-    },
-    { deep: true }
-  );
+  function setVolumeTool(tool: any) {
+    console.log("setVolumeTool", tool);
+    volumeTool.value = tool;
+  }
 
   // Methods to update clip properties (maintains reactivity)
   function setClipPosition(position: { x: number; y: number; z: number }) {
@@ -95,7 +96,11 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     clipRotation,
     clipPosition,
     clipScale,
+
+    volumeTool,
+
     // Actions
+    setVolumeTool,
     setClipPosition,
     setClipRotation,
     setClipScale,
