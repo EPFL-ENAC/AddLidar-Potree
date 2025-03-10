@@ -58,20 +58,6 @@ watch(
   }
 );
 
-function onClipChanged({ type, object }) {
-  pointcloudStore.setClipPosition(object.position);
-  pointcloudStore.setClipRotation(object.rotation.toVector3());
-  pointcloudStore.setClipScale(object.scale);
-}
-
-function onVolumeAdded({ scene, volume }) {
-  console.log("Volume added", scene, volume);
-
-  volume.addEventListener("scale_changed", onClipChanged);
-  volume.addEventListener("orientation_changed", onClipChanged);
-  volume.addEventListener("position_changed", onClipChanged);
-}
-
 onMounted(() => {
   console.log("Point cloud mounted", pointcloudId);
   if (!pointcloudId) {
@@ -114,7 +100,6 @@ onMounted(() => {
         window.viewer.scene.addPointCloud(pointcloud);
         window.viewer.scene.view.position.set(2572291, 1096850, 1958);
         window.viewer.scene.view.lookAt(2572360, 1097496, 1787);
-        window.viewer.scene.addEventListener("volume_added", onVolumeAdded);
 
         // Mark pointcloud as loaded
         pointcloudLoaded.value = true;

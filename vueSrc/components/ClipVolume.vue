@@ -1,21 +1,25 @@
 <template>
-  <q-expansion-item
-    label="Clip Box Properties"
-    header-class="text-primary"
-    icon="crop_3d"
-    default-opened
-  >
+  <q-expansion-item label="Clip Volume" bordered default-opened>
     <q-card>
       <q-card-section>
         <q-btn
+          v-if="!item"
           label="Insert volume"
           color="secondary"
           outline
           class="q-mt-md full-width"
           @click="startInsertion"
         />
+        <q-btn
+          v-else
+          label="Remove volume"
+          color="negative"
+          outline
+          class="q-mt-md full-width"
+          @click="removeClipVolume"
+        />
       </q-card-section>
-      <q-card-section>
+      <q-card-section v-if="item">
         <div class="text-subtitle2 q-mb-sm">Position X,Y,Z</div>
         <div class="row q-mb-sm">
           <div class="col">
@@ -65,10 +69,9 @@
   </q-expansion-item>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePointCloudStore } from "@/stores/pointcloud";
-import { ref } from "vue";
-import { nextTick } from "vue";
+import { nextTick, ref } from "vue";
 
 const store = usePointCloudStore();
 const {
@@ -77,28 +80,59 @@ const {
   clipScale: scale,
 } = store;
 
+const item = ref<any>(null);
+
 function startInsertion() {
   const volumeTool = store.volumeTool;
   if (!volumeTool || !volumeTool.startInsertion) return;
 
   // Start insertion and get the created item
-  const item = volumeTool.startInsertion({ clip: true });
+  item.value = volumeTool.startInsertion({ clip: true });
 
   // Use nextTick to ensure the DOM has updated
   nextTick(() => {
     try {
-      let measurementsRoot = $("#jstree_scene")
+      // Use type assertion for jQuery plugin
+      let measurementsRoot = ($("#jstree_scene") as any)
         .jstree()
         .get_json("measurements");
       let jsonNode = measurementsRoot.children.find(
-        (child) => child.data.uuid === item.uuid
+        (child: any) => child.data.uuid === item.value.uuid
       );
-      $.jstree.reference(jsonNode.id).deselect_all();
-      $.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+      ($("#jstree_scene") as any).jstree("deselect_all");
+      ($("#jstree_scene") as any).jstree("select_node", jsonNode.id);
+      onVolumeAdded({
+        volume: item.value,
+      });
     } catch (error) {
       console.error("Error selecting clip volume in jstree:", error);
     }
   });
+}
+
+function removeClipVolume() {
+  item.value.removeEventListener("scale_changed", onClipChanged);
+  item.value.removeEventListener("orientation_changed", onClipChanged);
+  item.value.removeEventListener("position_changed", onClipChanged);
+  item.value.removeEventListener("deselect", onClipChanged);
+  item.value = null;
+  (window as any).viewer.scene.removeAllClipVolumes();
+  store.resetClipVolume();
+}
+
+function onClipChanged({ object }: { object: any }) {
+  store.setClipPosition(object.position);
+  store.setClipRotation(object.rotation.toVector3());
+  store.setClipScale(object.scale);
+}
+
+function onVolumeAdded({ volume }: { volume: any }) {
+  console.log("Volume added", volume);
+  store.setClipVolume(volume);
+  volume.addEventListener("scale_changed", onClipChanged);
+  volume.addEventListener("orientation_changed", onClipChanged);
+  volume.addEventListener("position_changed", onClipChanged);
+  onClipChanged({ object: volume });
 }
 </script>
 

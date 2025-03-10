@@ -20,6 +20,12 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   const clipRotation = ref({ x: 0, y: 0, z: 0 });
   const clipScale = ref({ x: 1, y: 1, z: 1 });
 
+  const clipVolume = ref<any>(null);
+
+  function setClipVolume(volume: any) {
+    clipVolume.value = volume;
+  }
+
   function setVolumeTool(tool: any) {
     console.log("setVolumeTool", tool);
     volumeTool.value = tool;
@@ -44,6 +50,12 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     clipScale.value.z = scale.z;
   }
 
+  function resetClipVolume() {
+    setClipPosition({ x: 0, y: 0, z: 0 });
+    setClipRotation({ x: 0, y: 0, z: 0 });
+    setClipScale({ x: 1, y: 1, z: 1 });
+    clipVolume.value = null;
+  }
   // Actions as functions
   function setActiveAttribute(attributeName: string) {
     activeAttribute.value = attributeName;
@@ -96,10 +108,13 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     clipRotation,
     clipPosition,
     clipScale,
+    clipVolume,
 
     volumeTool,
 
     // Actions
+    setClipVolume,
+    resetClipVolume,
     setVolumeTool,
     setClipPosition,
     setClipRotation,

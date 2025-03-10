@@ -16,6 +16,8 @@
           v-model="epsg"
           placeholder="EPSG Code (optional)"
         />
+        <clip-volume> </clip-volume>
+
         <q-input
           outlined
           type="number"
@@ -125,10 +127,6 @@
     </q-card-section>
 
     <q-card-section>
-      <clip-volume> </clip-volume>
-    </q-card-section>
-
-    <q-card-section>
       <color-variable-selector />
     </q-card-section>
 
@@ -167,6 +165,8 @@ const {
   checkingStatus,
 } = downloadService;
 
+const { clipPosition, clipRotation, clipScale } = store;
+
 // Form values
 const type = ref("traj");
 const format = ref<SelectOption | undefined>(undefined);
@@ -174,6 +174,10 @@ const epsg = ref<string | undefined>(undefined);
 const density = ref("");
 const area = ref("");
 const number = ref(1000);
+
+function clipCoorToString(coor: { x: number; y: number; z: number }) {
+  return `${coor.x},${coor.y},${coor.z}`;
+}
 
 // Function to handle form submission
 function onSubmit(): void {
@@ -189,7 +193,12 @@ function onSubmit(): void {
   if (epsg.value) params.outcrs = epsg.value;
   if (density.value) params.density = density.value;
   if (area.value) params.roi = area.value;
+  if (store.clipVolume)
+    params.roi = `${clipCoorToString(clipPosition)},${clipCoorToString(
+      clipRotation
+    )},${clipCoorToString(clipScale)}`;
 
+  console.log("ROI", params.roi);
   // If type is metadata, add special flag
   if (type.value === "metadata") params.remove_all_attributes = true;
 
