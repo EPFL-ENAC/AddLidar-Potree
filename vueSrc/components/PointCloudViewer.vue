@@ -71,8 +71,8 @@ onMounted(() => {
     document.getElementById("potree_render_area")
   );
   viewer.setEDLEnabled(true);
-  viewer.setFOV(60);
-  viewer.setPointBudget(1_000_000);
+  viewer.setFOV(40);
+  viewer.setPointBudget(import.meta.env.dev ? 100000 : 1000000);
   viewer.loadSettingsFromURL();
   viewer.setDescription("");
   console.log(viewer);
@@ -98,8 +98,7 @@ onMounted(() => {
         material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
         // Add pointcloud to the viewer scene
         window.viewer.scene.addPointCloud(pointcloud);
-        window.viewer.scene.view.position.set(2572291, 1096850, 1958);
-        window.viewer.scene.view.lookAt(2572360, 1097496, 1787);
+        window.viewer.fitToScreen();
 
         // Mark pointcloud as loaded
         pointcloudLoaded.value = true;
