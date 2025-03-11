@@ -23,7 +23,7 @@ export interface JobParams {
   format?: string;
   outcrs?: string;
   density?: number | string;
-  roi?: string;
+  roi?: number[];
   number?: number;
   remove_all_attributes?: boolean;
   [key: string]: any;

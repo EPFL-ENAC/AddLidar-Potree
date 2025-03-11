@@ -192,11 +192,17 @@ function onSubmit(): void {
   // Add optional parameters if they exist
   if (epsg.value) params.outcrs = epsg.value;
   if (density.value) params.density = density.value;
-  if (area.value) params.roi = area.value;
+  // if (store.clipVolume)
+  //   params.roi = `(${clipCoorToString(clipPosition)},${clipCoorToString(
+  //     clipRotation
+  //   )},${clipCoorToString(clipScale)})`;
+
   if (store.clipVolume)
-    params.roi = `${clipCoorToString(clipPosition)},${clipCoorToString(
-      clipRotation
-    )},${clipCoorToString(clipScale)}`;
+    params.roi = [
+      ...Object.values(clipPosition),
+      ...Object.values(clipRotation),
+      ...Object.values(clipScale),
+    ];
 
   console.log("ROI", params.roi);
   // If type is metadata, add special flag
