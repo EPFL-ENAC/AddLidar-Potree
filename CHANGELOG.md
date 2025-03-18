@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.2.0](https://github.com/EPFL-ENAC/AddLidar-Potree/compare/v0.1.0...v0.2.0) (2025-03-18)
+
+
+### Features
+
+* add clip box connection between potree & vue js ([e92ccc4](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/e92ccc42e275971b31e33fdc95ed12c8c3723286))
+* add clip volume component mimicking potree clip volume ([5af502f](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/5af502f7f7e9307e91933c3e3501b6e1572487f6))
+* add filter range source id ([649e2ba](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/649e2baa246df16354f0af799c5499079945a2d6))
+* add job api with websocket connection [#4](https://github.com/EPFL-ENAC/AddLidar-Potree/issues/4) ([e3ff357](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/e3ff35753cfb080806c80ecee93cc2b7322da723))
+* added clip volume parameters inside downloading data form ([09d7abe](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/09d7abee7e28170ec8fbf5eb811bc2ae3839111c))
+* adjust FOV and point budget settings in PointCloudViewer ([08ddd00](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/08ddd0086a07b047d8c0b17da45714cf711a1997))
+* enhance DownloadDataForm with additional input fields and loading state for download process ([f0b0466](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/f0b0466a73014d84180b3c7f78b04ab47459dc13))
+* enhance README with collapsible Plant UML definition ([d83141f](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/d83141f9929f01bac69e8c29f78f1b2df1a69ed8))
+* improve readme ([c750057](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/c75005739e295bc53e6be0bada233e7f5e36ef7a))
+* make color variables selector in expansion item ([c68ccd3](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/c68ccd325c5c59b432bf31e818f116617f98b08c))
+* reimplemented color variable ([509da28](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/509da287cccb800b30e1a7ade5ea762034e3acf4))
+* set download logic for mvp - only format selection ([14d5ee9](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/14d5ee9f92269dfb25acc600f1769dfdc0ba41cb))
+* update DownloadDataForm with new input fields and improved download logic ([9268a8d](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/9268a8d1aee1002da256ab7a086e01384f84caf2))
+* update ROI parameter to use an array format in DownloadDataForm and JobParams ([d58ddb6](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/d58ddb669af498bb8dfd00330509e04f8a42e2e8))
+
+
+### Bug Fixes
+
+* bind max prop to range-filter in DownloadDataForm for proper functionality ([ccdc256](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/ccdc25615d6c6868ce13f3715f850c49cfedd136))
+* comment yet not implemented file format in api ([cc384a4](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/cc384a468e69b6be9c22a69186d5363e82cc23ef))
+* sync npm shrinkwrap ([ba1ced0](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/ba1ced0c789d8fa77014b438cc7a0975022daab2))
+* update button label in DownloadDataForm for clarity ([9a9399b](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/9a9399bdb9d08bade107e7376245ec255818409d))
+* use filename from URL parameters for download file path ([658fabd](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/658fabdc5df72d95f282996d7adf4b143ada2862))
+
+## Changelog
+
 ### Features
 
 - add download data form ([6b4755f](https://github.com/EPFL-ENAC/AddLidar-Potree/commit/6b4755f69878d42a430374fd0ec4255392ae35a5))
