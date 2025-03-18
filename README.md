@@ -1,184 +1,213 @@
-# Add Lidar Specs
+# AddLidar Project Documentation
 
 ## Project Overview
 
-The **AddLidar Project** is a web-based system for **storing, processing, and visualizing LiDAR datasets** collected from airborne missions. The goal is to provide researchers with an **efficient pipeline** to access, process, and visualize large LiDAR datasets via a Kubernetes-based infrastructure.
+The AddLidar Project is a web-based system for storing, processing, and visualizing LiDAR datasets collected from airborne missions. The goal is to provide researchers with an efficient pipeline to access, process, and visualize large LiDAR datasets via a Kubernetes-based infrastructure.
 
-The system consists of multiple components:
+## System Components
 
-- **MMGIS**: A web interface for managing missions, allowing researchers to manually input mission metadata and file locations.
+The system consists of multiple integrated components:
+
+- **MMGIS**: A web interface for managing missions, allowing researchers to input mission metadata and file locations.
 - **Potree**: A LiDAR visualization tool that loads pre-processed datasets from ENAC IT CDN.
-- **API Wrapper**: A REST API that converts user queries into commands for the
-- **LidarDataManager CLI:** A command-line tool for filtering, processing, and exporting LiDAR datasets.
+- **API Wrapper**: A REST API that converts user queries into commands for the processing pipeline.
+- **LidarDataManager CLI**: A command-line tool for filtering, processing, and exporting LiDAR datasets.
+- **WebSocket Server**: Provides real-time progress updates for long-running processing jobs.
 
-Stockage :
+### Storage Infrastructure:
 
-- **NAS RCP**: The primary storage for raw LiDAR datasets.
-- **ENAC IT CDN**: Stores optimized datasets converted by **Potree Converter**.
-- **Kubernetes Infrastructure**: Hosts the API and ensures secure access to data.
+- **NAS RCP**: The primary storage for raw LiDAR datasets and static mission files.
+- **ENAC IT CDN**: Stores optimized datasets converted by Potree Converter.
+- **Kubernetes Infrastructure**: Hosts the API, WebSocket server, and job management, ensuring secure access to data.
 
-## **Add Mission Workflow**
+## Workflow: Adding a New Mission
 
-1. **Researcher Adds New Files (NAS RCP):**
+```mermaid
+flowchart LR
+    Researcher([Researcher]) --> NAS[NAS RCP]
+    NAS --> MMGIS[MMGIS]
+    MMGIS --> K8sJob[K8s Potree Converter Job]
+    K8sJob --> CDN[ENAC IT CDN]
 
-   The researcher places new LiDAR files in the NAS RCP storage (e.g., `/LiDAR/0001_Mission_Root/...`).
+    style Researcher fill:#f5f5f5,stroke:#333,stroke-width:2px
+    style NAS fill:#e6f3ff,stroke:#333,stroke-width:1px
+    style MMGIS fill:#e6ffe6,stroke:#333,stroke-width:1px
+    style K8sJob fill:#f0e6ff,stroke:#333,stroke-width:1px
+    style CDN fill:#ffe6e6,stroke:#333,stroke-width:1px
+```
 
-2. **Enter Mission Metadata (MMGIS):**
+1. **Researcher Adds New Files (NAS RCP)**:
 
-   The researcher manually enters the mission’s metadata into **MMGIS**, including:
+   - The researcher places new LiDAR files in the NAS RCP storage (e.g., `/LiDAR/0001_Mission_Root/...`).
 
-   - Mission footprint in GeoJSON
-   - Flight date
-   - File path referencing the newly added LiDAR files on NAS RCP
+2. **Enter Mission Metadata (MMGIS)**:
 
-3. **Conversion & Upload (Potree Converter to ENAC IT CDN):**
-   - A batch job triggers **Potree Converter** once the new mission is registered in MMGIS. **TO DISCUSS**
-   - **Potree Converter** processes the LiDAR files and uploads the optimized dataset (e.g., `octree.bin`, `metadata.json`) to **ENAC IT CDN**, stored under a path like `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/`.
-4. **Mission Ready for Visualization:**
-   - **MMGIS** now includes a mission link pointing to the **Potree** web interface.
-   - Users can follow this link to view the newly added LiDAR dataset in Potree.
+   - The researcher manually enters the mission's metadata into MMGIS, including:
+     - Mission footprint in GeoJSON
+     - Flight date
+     - File path referencing the newly added LiDAR files on NAS RCP
 
-## **Explore Missions Workflow**
+3. **Automated Conversion & Upload**:
 
-1. **Dataset Selection (MMGIS / Potree):**
-   - A user browses the mission list in **MMGIS** and selects a mission.
-   - The system provides a link to **Potree** for visualization.
-2. **Visualization (Potree from ENAC IT CDN):**
-   - **Potree** loads the pre-processed LiDAR files directly from **ENAC IT CDN** (e.g., `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/octree.bin`).
-   - The user can explore the dataset through Potree’s 3D viewer (pan, zoom, measure, etc.).
-3. **Request Processed Dataset (Potree Download Form):**
-   - Within Potree, the user can fill out the **download form** (filters, density, output format, ROI, etc.).
-   - Submitting the form sends these parameters as a request to the **API Wrapper** (REST endpoint).
-4. **On-Demand Processing (API Wrapper & LidarDataManager CLI):**
-   - **API Wrapper** receives the request, parses it, and translates it into a **LidarDataManager CLI** command.
-   - Since the CLI has read-only access to NAS RCP via a **Persistent Volume Claim (PVC)**, it executes the requested data transformation and returns a processed LiDAR file.
-5. **Download Processed Data:**
-   - The **API Wrapper** responds with the processed dataset.
-   - The user downloads the customized file through Potree’s interface.
-   - Progress bar ? Depending on performance of the CLI, a job queue or not.
+   - Adding a new mission in MMGIS automatically triggers a Kubernetes job
+   - The job runs Potree Converter to process the LiDAR files
+   - The optimized dataset (e.g., octree.bin, metadata.json, hierarchy.bin) is uploaded to ENAC IT CDN
+   - Files are stored under a path like `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/`
 
-## Architecture
+4. **Mission Ready for Visualization**:
+   - Once processing is complete, MMGIS automatically includes a mission link pointing to the Potree web interface
+   - Users can follow this link to view the newly added LiDAR dataset in Potree
 
-### **MMGIS** ([AddLidar-MMGIS](https://addlidar-mmgis-dev.epfl.ch/))
+## Workflow: Exploring and Processing Missions
 
-- Provides a user interface where researchers **manually input mission metadata**.
+```mermaid
+flowchart TD
+    User([User]) --> MMGIS[MMGIS]
+    MMGIS --> Potree[Potree Viewer]
+    Potree --> DownloadOptions{Download Options}
+
+    DownloadOptions -->|Static Files| StaticFiles[NAS RCP Files]
+    DownloadOptions -->|Custom Processing| API[API Wrapper]
+
+    API --> K8sJob[K8s Processing Job]
+    K8sJob --> WebSocket[WebSocket Status Updates]
+    WebSocket --> ProcessedFile[Processed File Download]
+
+    style User fill:#f5f5f5,stroke:#333,stroke-width:2px
+    style MMGIS fill:#e6ffe6,stroke:#333,stroke-width:1px
+    style Potree fill:#e6f3ff,stroke:#333,stroke-width:1px
+    style DownloadOptions fill:#fff2cc,stroke:#333,stroke-width:1px
+    style StaticFiles fill:#ffe6e6,stroke:#333,stroke-width:1px
+    style API fill:#f0e6ff,stroke:#333,stroke-width:1px
+    style K8sJob fill:#f0e6ff,stroke:#333,stroke-width:1px
+    style WebSocket fill:#e6ffff,stroke:#333,stroke-width:1px
+    style ProcessedFile fill:#ffe6e6,stroke:#333,stroke-width:1px
+```
+
+1. **Dataset Selection (MMGIS)**:
+
+   - A user browses the mission list in MMGIS, which displays mission footprints as GeoJSON overlays
+   - User selects a mission of interest
+   - The system provides a link to Potree for visualization
+
+2. **Visualization (Potree)**:
+
+   - Potree loads the pre-processed LiDAR files directly from ENAC IT CDN
+   - The user can explore the dataset through Potree's 3D viewer (pan, zoom, measure, etc.)
+
+3. **Download Options**:
+
+   - **Static Files**: Users can directly download original or pre-processed static files associated with the mission
+   - **Custom Processing**: Users can request on-demand processing with custom parameters
+
+4. **Request Processed Dataset (Custom Processing)**:
+
+   - Within Potree, the user fills out the download form (filters, density, output format, ROI, etc.)
+   - Submitting the form sends these parameters as a request to the API Wrapper
+
+5. **On-Demand Processing Pipeline**:
+
+   - API Wrapper receives the request and initiates a Kubernetes job
+   - A WebSocket connection is established between the client and server
+   - The job executes the LidarDataManager CLI with the requested parameters
+   - The CLI accesses the raw data via a read-only Persistent Volume Claim (PVC)
+
+6. **Real-time Progress Updates**:
+
+   - The processing job sends status updates via WebSocket to the client
+   - Users see a progress bar/indicator showing the current status of their request
+
+7. **Download Processed Data**:
+   - Once processing is complete, a notification is sent via WebSocket
+   - The user downloads the customized file through Potree's interface
+
+## Detailed Architecture
+
+### MMGIS (AddLidar-MMGIS)
+
+- Provides a user interface where researchers manage mission metadata
 - Each mission contains:
-  - **Footprint data** (GeoJSON format).
-  - **Date of flight**.
-  - **Relative path** to the dataset stored in **NAS RCP** (e.g., `/LiDAR/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`).
-- When a new mission is added, a **Job** must be executed to process the dataset with **Potree Converter** and store the converted files in **ENAC IT CDN**.
-- Provides mission links that point to **Potree**, enabling visualization of the dataset.
+  - Footprint data (GeoJSON format)
+  - Date of flight
+  - Relative path to the dataset stored in NAS RCP
+- When a new mission is added, it automatically triggers a Kubernetes job to process the dataset
+- Provides mission links that point to Potree for visualization
 
-### **Potree** ([AddLidar-Potree](https://addlidar-potree.epfl.ch/) | [GitHub](https://github.com/EPFL-ENAC/AddLidar-Potree))
+### Potree (AddLidar-Potree)
 
-- **Visualizes LiDAR datasets** using **Octree-based rendering**.
-- Loads datasets **directly from ENAC IT CDN** (e.g., `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/octree.bin`).
-- Provides a **download form**, allowing users to request processed versions of the dataset.
+- Visualizes LiDAR datasets using Octree-based rendering
+- Loads datasets directly from ENAC IT CDN
+- Provides static file download links for original mission files
+- Offers a custom processing form, allowing users to request processed versions of the dataset
+- Connects to WebSocket server for real-time updates on processing jobs
+- Handles download of both static and processed files
 
-### **API Wrapper** ([GitHub](https://github.com/EPFL-ENAC/AddLidar-API))
+### API Wrapper
 
-- Runs a **REST API** that:
-  - Parses **URL query parameters** from the **Potree download form**.
-  - Converts queries into **LidarDataManager CLI** commands.
-  - Mounts the NAS storage via **Persistent Volume Claim (PVC)** to access datasets.
-  - Provides processed **LiDAR dataset downloads** based on user-selected parameters.
-- **Storage Access**:
-  - The **PVC is read-only** and **only accessible from the API Wrapper**.
+- Runs a REST API that:
+  - Parses parameters from the Potree download form
+  - Creates and manages Kubernetes jobs for the LidarDataManager CLI
+  - Establishes WebSocket connections for progress reporting
+  - Delivers processed files to users when complete
 
-### **NAS RCP (LiDAR Storage)**
+### WebSocket Server
 
-- Primary storage server hosting all **raw LiDAR datasets**.
-- Organized into mission-specific folders following the format: `ID_NAME/`.
+- Maintains persistent connections with client browsers
+- Receives updates from processing jobs
+- Forwards progress information to users in real-time
+- Notifies when processing is complete and files are ready for download
+
+### Kubernetes Job Management
+
+- Handles two types of jobs:
+  - Potree Converter jobs (triggered by new mission creation)
+  - LidarDataManager CLI jobs (triggered by custom processing requests)
+- Manages job queues, resources, and execution
+- Provides isolation and security for all processing tasks
+
+### Storage Infrastructure
+
+#### NAS RCP (LiDAR Storage)
+
+- Primary storage server hosting all raw LiDAR datasets
+- Organized into mission-specific folders following the format: `ID_NAME/`
 - Contains multiple data subdirectories:
-  - **Raw data (`00_Raw_Lidar_SDC_Data/`)**
-  - **Processed data (`02_LASPCD/`)**
-  - **Metadata (`09_LAZ_FootPrints/`)**
-- Example file path: `/LiDAR/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`
+  - Raw data (`00_Raw_Lidar_SDC_Data/`)
+  - Processed data (`02_LASPCD/`)
+  - Metadata (`09_LAZ_FootPrints/`)
+- Example file path: `/LiDAR/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`
 
-### **ENAC IT CDN (Processed LiDAR Storage)**
+#### ENAC IT CDN (Processed LiDAR Storage)
 
-- Stores **Potree-processed datasets** for efficient web-based visualization.
+- Stores Potree-processed datasets for efficient web-based visualization
 - Example file paths:
   - `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/octree.bin`
   - `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/metadata.json`
+  - `enacit4r-cdn.epfl.ch/AddLidar/{ID_NAME}/hierarchy.bin`
 
-### **LidarDataManager CLI** ([GitLab](https://gitlab.epfl.ch/topo/lidardatamanager))
+#### LidarDataManager CLI
 
-- Command-line tool for **filtering, transforming, and exporting LiDAR data**.
-- Used by the **API Wrapper** to process datasets on demand.
+- Command-line tool for filtering, transforming, and exporting LiDAR data
+- Used by the Kubernetes jobs to process datasets on demand
 - Supports:
-  - Filtering attributes.
-  - Converting between formats (PCD, LAS v1.4, etc.).
-  - Selecting subsets of points (ROI, density filtering).
-  - Coordinate system transformations.
+  - Filtering attributes
+  - Converting between formats (PCD, LAS v1.4, etc.)
+  - Selecting subsets of points (ROI, density filtering)
+  - Coordinate system transformations
 - Example usage:
-  ```
-  ./lidarDataManager --format=lasv14 --density=10.0 --roi="100,200,300,50,50,50,0,0,0" --outcrs="EPSG:2056" /path/to/dataset.las
-  ```
 
-### **Kubernetes Infrastructure**
-
-- Hosts the **API Wrapper** and **Persistent Volume Claim (PVC)**.
-- **PVC Access**:
-
-  - Mounts `smb://enac-nas1.rcp.epfl.ch/fts-addlidar/LiDAR/`.
-  - Access is **read-only** and limited to the **API Wrapper**.
-
-<details>
-
-<summary>Plant UML definition</summary>
-
-```plantuml
-@startuml
-  !pragma teoz true
-  title AddLidar - High-Level Architecture
-  skinparam componentStyle uml2
-  skinparam component {
-  BackgroundColor<<K8S>> #F1F4FF
-  BackgroundColor<<Storage>> #F9F9F9
-  BackgroundColor<<Web>> #FFFCEF
-  BackgroundColor<<Service>> #EFFFEF
-  BorderColor #999999
-  FontColor #333333
-  }
-  rectangle "Kubernetes" <<K8S>> as K8S {
-  component "API Wrapper" <<Service>> as API
-  component "LidarDataManager CLI" <<Service>> as CLI
-  note bottom of API
-  • Exposes REST endpoints
-  • Translates user requests into CLI commands
-  • Connects to read-only PVC
-  end note
-  note bottom of CLI
-  • Command-line LiDAR processing
-  • Called by API Wrapper
-  • Reads from NAS via PVC
-  end note
-  }
-  rectangle "External Storage" <<Storage>> as EXT {
-  folder "NAS RCP\n(Raw LiDAR)" <<Storage>> as NAS
-  folder "ENAC IT CDN\n(Processed LiDAR)" <<Storage>> as CDN
-  }
-  component "MMGIS" <<Web>> as MMGIS
-  component "Potree" <<Web>> as Potree
-  ' Relationships
-  MMGIS -[hidden]-> NAS
-  MMGIS -[hidden]-> Potree
-  Potree -[hidden]-> CDN
-  Potree -[hidden]-> API
-  API -[hidden]-> CLI
-  CLI -[hidden]-> NAS
-  API -[hidden]-> CDN
-  ' Render visible lines with labels
-  MMGIS --> NAS : 1) Path references\nRaw LiDAR
-  MMGIS --> Potree : 2) Link to 3D viewer
-  Potree --> CDN : Loads pre-processed\noctree data
-  Potree --> API : Requests on-demand\nprocessing
-  API --> CLI : Translates REST calls\nto CLI commands
-  CLI --> NAS : Reads raw LiDAR\n(read-only via PVC)
-  API --> CDN : (Optional) Upload or\nupdate processed data
-  Potree <-- API : Returns processed\nLiDAR for download
-  @enduml
 ```
 
-</details>
+./lidarDataManager --format=lasv14 --density=10.0 --roi="100,200,300,50,50,50,0,0,0" --outcrs="EPSG:2056" /path/to/dataset.las
+
+```
+
+### Kubernetes Infrastructure
+
+- Hosts all dynamic components:
+- API Wrapper
+- WebSocket Server
+- Processing Jobs
+- PVC Access:
+- Mounts `smb://enac-nas1.rcp.epfl.ch/fts-addlidar/LiDAR/`
+- Access is read-only and limited to the API Wrapper and processing jobs
