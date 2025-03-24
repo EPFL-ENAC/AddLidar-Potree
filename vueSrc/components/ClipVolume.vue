@@ -32,7 +32,18 @@
             <q-badge color="red" flat>{{ position.z.toFixed() }}</q-badge>
           </div>
         </div>
-
+        <div class="text-subtitle2 q-mb-sm">Scale X,Y,Z</div>
+        <div class="row">
+          <div class="col">
+            <q-badge color="blue" flat>{{ scale.x.toFixed(2) }}</q-badge>
+          </div>
+          <div class="col">
+            <q-badge color="green" flat>{{ scale.y.toFixed(2) }}</q-badge>
+          </div>
+          <div class="col">
+            <q-badge color="red" flat>{{ scale.z.toFixed(2) }}</q-badge>
+          </div>
+        </div>
         <div class="text-subtitle2 q-mb-sm">Rotation X,Y,Z (deg)</div>
         <div class="row q-mb-sm">
           <div class="col">
@@ -49,19 +60,6 @@
             <q-badge color="red" flat
               >{{ ((rotation.z * 180) / Math.PI).toFixed(1) }}°</q-badge
             >
-          </div>
-        </div>
-
-        <div class="text-subtitle2 q-mb-sm">Scale X,Y,Z</div>
-        <div class="row">
-          <div class="col">
-            <q-badge color="blue" flat>{{ scale.x.toFixed(2) }}</q-badge>
-          </div>
-          <div class="col">
-            <q-badge color="green" flat>{{ scale.y.toFixed(2) }}</q-badge>
-          </div>
-          <div class="col">
-            <q-badge color="red" flat>{{ scale.z.toFixed(2) }}</q-badge>
           </div>
         </div>
       </q-card-section>
@@ -132,7 +130,7 @@ function onVolumeAdded({ volume }: { volume: any }) {
   volume.addEventListener("scale_changed", onClipChanged);
   volume.addEventListener("orientation_changed", onClipChanged);
   volume.addEventListener("position_changed", onClipChanged);
-  onClipChanged({ object: volume });
+  setTimeout(() => onClipChanged({ object: volume }), 5000);
 }
 </script>
 

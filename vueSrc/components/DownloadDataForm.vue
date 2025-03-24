@@ -184,7 +184,7 @@ function onSubmit(): void {
   // Create params object from form values
   const params: JobParams = {
     file_path:
-      "/LiDAR/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las", // Default path
+      "/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las", // Default path
     format: format.value ? format.value.value : undefined,
     number: parseInt(number.value as any),
   };
@@ -200,8 +200,8 @@ function onSubmit(): void {
   if (store.clipVolume)
     params.roi = [
       ...Object.values(clipPosition),
-      ...Object.values(clipRotation),
       ...Object.values(clipScale),
+      ...Object.values(clipRotation),
     ];
 
   console.log("ROI", params.roi);

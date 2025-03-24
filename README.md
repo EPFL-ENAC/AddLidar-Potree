@@ -38,7 +38,7 @@ flowchart LR
 
 1. **Researcher Adds New Files (NAS RCP)**:
 
-   - The researcher places new LiDAR files in the NAS RCP storage (e.g., `/LiDAR/0001_Mission_Root/...`).
+   - The researcher places new LiDAR files in the NAS RCP storage (e.g., `/0001_Mission_Root/...`).
 
 2. **Enter Mission Metadata (MMGIS)**:
 
@@ -175,7 +175,7 @@ flowchart TD
   - Raw data (`00_Raw_Lidar_SDC_Data/`)
   - Processed data (`02_LASPCD/`)
   - Metadata (`09_LAZ_FootPrints/`)
-- Example file path: `/LiDAR/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`
+- Example file path: `/0001_Mission_Root/02_LASPCD/test_blk_07_classified_full_density.las`
 
 #### ENAC IT CDN (Processed LiDAR Storage)
 
@@ -209,5 +209,5 @@ flowchart TD
 - WebSocket Server
 - Processing Jobs
 - PVC Access:
-- Mounts `smb://enac-nas1.rcp.epfl.ch/fts-addlidar/LiDAR/`
+- Mounts `smb://enac-nas1.rcp.epfl.ch/fts-addlidar/`
 - Access is read-only and limited to the API Wrapper and processing jobs
