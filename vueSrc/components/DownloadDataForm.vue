@@ -126,10 +126,18 @@
       </q-expansion-item>
     </q-card-section>
 
+    <!-- LiDAR Directory Tree section -->
+    <q-separator class="q-my-md" />
+    <q-card-section class="lidar-files-section">
+      <lidar-directory-tree />
+    </q-card-section>
+
+    <q-separator class="q-my-md" />
     <q-card-section>
       <color-variable-selector />
     </q-card-section>
 
+    <q-separator class="q-my-md" />
     <q-card-section>
       <range-filter :max="10" />
     </q-card-section>
@@ -140,6 +148,7 @@
 import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
 import ClipVolume from "@/components/ClipVolume.vue";
 import RangeFilter from "@/components/RangeFilter.vue";
+import LidarDirectoryTree from "@/components/LidarDirectoryTree.vue";
 import { ref, onBeforeUnmount } from "vue";
 import { formatOptions, epsgOptions, type SelectOption } from "@/utils/api";
 import useDownloadService from "@/utils/useDownloadService";
@@ -223,7 +232,7 @@ onBeforeUnmount(closeConnection);
   right: 0;
   top: 0;
   height: 100%;
-  width: 300px;
+  width: 500px;
   z-index: 2;
   box-sizing: border-box;
   font-family: Arial, sans-serif;
@@ -247,5 +256,9 @@ onBeforeUnmount(closeConnection);
 
 .log-item:last-child {
   border-bottom: none;
+}
+
+.lidar-files-section {
+  padding-top: 0;
 }
 </style>
