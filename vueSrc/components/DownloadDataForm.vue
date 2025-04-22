@@ -136,18 +136,12 @@
     <q-card-section>
       <color-variable-selector />
     </q-card-section>
-
-    <q-separator class="q-my-md" />
-    <q-card-section>
-      <range-filter :max="10" />
-    </q-card-section>
   </q-card>
 </template>
 
 <script setup lang="ts">
 import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
 import ClipVolume from "@/components/ClipVolume.vue";
-import RangeFilter from "@/components/RangeFilter.vue";
 import LidarDirectoryTree from "@/components/LidarDirectoryTree.vue";
 import { ref, onBeforeUnmount } from "vue";
 import { formatOptions, epsgOptions, type SelectOption } from "@/utils/api";
