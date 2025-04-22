@@ -7,7 +7,7 @@
       v-model="searchTerm"
       outlined
       dense
-      label="Search directories"
+      label="Search files"
       class="q-mb-md"
       clearable
     >
@@ -21,35 +21,28 @@
       <div class="q-mt-sm text-grey">Loading directory data...</div>
     </div>
 
-    <q-tabs
-      v-model="activeTab"
-      dense
-      class="text-grey"
-      active-color="primary"
-      indicator-color="primary"
-      align="justify"
-      narrow-indicator
-    >
-      <q-tab
-        v-for="group in missionGroups"
-        :key="group"
-        :name="group"
-        :label="group"
-      />
-    </q-tabs>
-
-    <q-separator />
-
-    <q-tab-panels v-model="activeTab" animated>
-      <q-tab-panel v-for="group in missionGroups" :key="group" :name="group">
-        <!-- Simple directory listing -->
-        <div class="directory-list q-gutter-y-sm">
+    <!-- Mission selection - First level -->
+    <q-list bordered separator class="rounded-borders list-files">
+      <q-expansion-item
+        v-for="mission in filteredMissions"
+        :key="mission"
+        :label="mission"
+        icon="folder"
+        group="missions"
+        header-class="text-primary"
+      >
+        <!-- Files in mission - Second level -->
+        <q-list padding>
           <q-item
-            v-for="item in filteredItemsByMission(group)"
+            v-for="item in getFilesForMission(mission)"
             :key="item.path"
             clickable
             :class="{ 'has-files': item.file_count > 0 }"
           >
+            <q-item-section avatar>
+              <q-icon name="description" color="grey" />
+            </q-item-section>
+
             <q-item-section>
               <q-item-label>{{ getNodeLabel(item.path) }}</q-item-label>
               <q-item-label caption>
@@ -82,9 +75,9 @@
               </q-btn>
             </q-item-section>
           </q-item>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
+        </q-list>
+      </q-expansion-item>
+    </q-list>
   </div>
 </template>
 
@@ -104,20 +97,59 @@ interface DirectoryNode {
 const searchTerm = ref("");
 const directoryData = ref<DirectoryNode[]>([]);
 const baseUrl = ref("https://addlidar-potree-dev.epfl.ch");
-const activeTab = ref("");
 const hasData = ref(false);
 
-// Compute unique mission groups from the paths
-const missionGroups = computed(() => {
-  const missions = new Set<string>();
+// Compute unique mission names from the paths
+const missions = computed(() => {
+  const missionSet = new Set<string>();
   directoryData.value.forEach((item) => {
     const pathParts = item.path.split("/");
     if (pathParts.length > 1 && pathParts[1]) {
-      missions.add(pathParts[1]);
+      missionSet.add(pathParts[1]);
     }
   });
-  return Array.from(missions).sort();
+  return Array.from(missionSet).sort();
 });
+
+// Filter missions based on search term
+const filteredMissions = computed(() => {
+  if (!searchTerm.value) {
+    return missions.value;
+  }
+
+  const term = searchTerm.value.toLowerCase();
+
+  // Include mission if mission name matches or any of its files match
+  return missions.value.filter((mission) => {
+    // Check if mission name matches search
+    if (mission.toLowerCase().includes(term)) {
+      return true;
+    }
+
+    // Check if any file in this mission matches search
+    const filesInMission = getFilesForMission(mission);
+    return filesInMission.some(
+      (item) =>
+        getNodeLabel(item.path).toLowerCase().includes(term) ||
+        item.path.toLowerCase().includes(term)
+    );
+  });
+});
+
+// Get files for a specific mission
+function getFilesForMission(mission: string) {
+  const filtered = directoryData.value.filter((item) => {
+    const pathParts = item.path.split("/");
+    return pathParts.length > 1 && pathParts[1] === mission;
+  });
+
+  // Sort by filename (last part of path)
+  return filtered.sort((a, b) => {
+    const aLabel = getNodeLabel(a.path);
+    const bLabel = getNodeLabel(b.path);
+    return aLabel.localeCompare(bLabel);
+  });
+}
 
 // Format size to human-readable
 function formatSize(sizeKb: number): string {
@@ -136,28 +168,6 @@ function getNodeLabel(path: string): string {
   return parts[parts.length - 1] || path;
 }
 
-// Filter directories based on mission and search term
-function filteredItemsByMission(mission: string) {
-  const filtered = directoryData.value.filter((item) => {
-    const pathParts = item.path.split("/");
-    const itemMission = pathParts.length > 1 ? pathParts[1] : "";
-
-    if (itemMission !== mission) return false;
-
-    if (searchTerm.value) {
-      return item.path.toLowerCase().includes(searchTerm.value.toLowerCase());
-    }
-    return true;
-  });
-
-  // Sort by path within the mission
-  return filtered.sort((a, b) => {
-    const aLabel = getNodeLabel(a.path);
-    const bLabel = getNodeLabel(b.path);
-    return aLabel.localeCompare(bLabel);
-  });
-}
-
 // Function to initiate direct download
 function downloadDirectory(path: string): void {
   // Create the download URL by combining baseUrl with the path
@@ -173,12 +183,6 @@ function downloadDirectory(path: string): void {
 onMounted(() => {
   // Load the directory metadata
   directoryData.value = directoryMetadata as DirectoryNode[];
-
-  // Set first tab as active
-  if (missionGroups.value.length > 0) {
-    activeTab.value = missionGroups.value[0];
-  }
-
   hasData.value = true;
 
   // In production, get the actual base URL from the environment or config
@@ -194,17 +198,17 @@ onMounted(() => {
   width: 100%;
 }
 
-.directory-list {
-  max-height: 300px;
+.list-files {
+  max-height: 400px;
   overflow-y: auto;
-  background-color: rgba(255, 255, 255, 0.7);
 }
 
 .has-files {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
-.q-tab-panel {
-  padding: 8px 0;
+.q-list {
+  max-height: 400px;
+  overflow-y: auto;
 }
 </style>
