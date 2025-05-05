@@ -62,7 +62,7 @@ onMounted(() => {
   console.log("Point cloud mounted", pointcloudId);
   if (!pointcloudId) {
     showError(
-      'No point cloud id specified. Please provide a valid "id" query parameter. <a href="/?id=data">Here\'s an example</a>'
+      'No point cloud id specified. Please provide a valid "id" query parameter. <a href="/?id=0002_Val_dArpette">Here\'s an example</a>'
     );
     return;
   }
@@ -83,7 +83,7 @@ onMounted(() => {
   });
   try {
     const pointCloudUrl = new URL(
-      `https://enacit4r-cdn.epfl.ch/AddLidar/${pointcloudId}/metadata.json`
+      `https://addlidar-potree-dev.epfl.ch/static/Potree/${pointcloudId}/metadata.json`
     );
     console.log("pointCloudUrl", pointCloudUrl.href);
 

@@ -1,6 +1,6 @@
 <template>
   <div class="directory-tree-container">
-    <div class="text-h6 q-pb-md">Lidar Directory Structure</div>
+    <div class="text-h6 q-pb-md">Lidar Files</div>
 
     <!-- Search filter -->
     <q-input
@@ -16,143 +16,125 @@
       </template>
     </q-input>
 
-    <div v-if="!hasData" class="text-center q-pa-md">
+    <div v-if="isLoading" class="text-center q-pa-md">
       <q-spinner color="primary" size="24px" />
-      <div class="q-mt-sm text-grey">Loading directory data...</div>
+      <div class="q-mt-sm text-grey">Loading mission data...</div>
     </div>
 
-    <!-- Mission selection - First level -->
-    <q-list bordered separator class="rounded-borders list-files">
-      <q-expansion-item
-        v-for="mission in filteredMissions"
-        :key="mission"
-        :label="mission"
-        icon="folder"
-        group="missions"
-        header-class="text-primary"
+    <div v-else-if="error" class="text-center q-pa-md text-negative">
+      <q-icon name="error" size="24px" />
+      <div class="q-mt-sm">{{ error }}</div>
+    </div>
+
+    <div v-else-if="!activeMission" class="text-center q-pa-md">
+      <q-icon name="folder_off" size="24px" />
+      <div class="q-mt-sm text-grey">No mission selected</div>
+    </div>
+
+    <!-- Files in active mission -->
+    <q-list v-else bordered separator class="rounded-borders list-files">
+      <q-item class="bg-primary text-white">
+        <q-item-section>
+          <q-item-label>
+            <q-icon name="folder" class="q-mr-sm" />
+            {{ activeMission }}
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+
+      <q-item
+        v-for="item in filteredFiles"
+        :key="item.folder_path"
+        clickable
+        :class="{ 'has-files': item.folder_file_count > 0 }"
       >
-        <!-- Files in mission - Second level -->
-        <q-list padding>
-          <q-item
-            v-for="item in getFilesForMission(mission)"
-            :key="item.path"
-            clickable
-            :class="{ 'has-files': item.file_count > 0 }"
+        <q-item-section>
+          <q-item-label>{{ getFolderName(item.folder_path) }}</q-item-label>
+          <q-item-label caption>
+            {{ formatSize(item.folder_size_kb) }} ·
+            {{ formatDate(item.folder_mod_time) }}
+            <q-badge
+              v-if="item.folder_file_count > 0"
+              color="green"
+              text-color="white"
+              class="q-ml-xs"
+            >
+              {{ item.folder_file_count }}
+              {{ item.folder_file_count === 1 ? "file" : "files" }}
+            </q-badge>
+            <q-badge v-else color="grey" text-color="white" class="q-ml-xs"
+              >Empty</q-badge
+            >
+          </q-item-label>
+        </q-item-section>
+
+        <q-item-section side v-if="item.folder_file_count > 0">
+          <q-btn
+            flat
+            round
+            dense
+            icon="download"
+            color="primary"
+            @click="downloadArchive(item.archive_path)"
           >
-            <q-item-section avatar>
-              <q-icon name="description" color="grey" />
-            </q-item-section>
+            <q-tooltip>Download archive</q-tooltip>
+          </q-btn>
+        </q-item-section>
+      </q-item>
 
-            <q-item-section>
-              <q-item-label>{{ getNodeLabel(item.path) }}</q-item-label>
-              <q-item-label caption>
-                {{ formatSize(item.size_kb) }}
-                <q-badge
-                  v-if="item.file_count > 0"
-                  color="green"
-                  text-color="white"
-                  class="q-ml-xs"
-                >
-                  {{ item.file_count }}
-                  {{ item.file_count === 1 ? "file" : "files" }}
-                </q-badge>
-                <q-badge v-else color="grey" text-color="white" class="q-ml-xs"
-                  >Empty</q-badge
-                >
-              </q-item-label>
-            </q-item-section>
-
-            <q-item-section side v-if="item.file_count > 0">
-              <q-btn
-                flat
-                round
-                dense
-                icon="download"
-                color="primary"
-                @click="downloadDirectory(item.path)"
-              >
-                <q-tooltip>Download files</q-tooltip>
-              </q-btn>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-expansion-item>
+      <q-item v-if="!filteredFiles.length">
+        <q-item-section class="text-center text-grey">
+          No folders found
+        </q-item-section>
+      </q-item>
     </q-list>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import directoryMetadata from "@/assets/lidar_directory_metadata.json";
+import { ref, computed, watch } from "vue";
+import { useDirectoryStore } from "@/stores/directoryStore";
 
-interface DirectoryNode {
-  path: string;
-  size_kb: number;
-  mod_time: string;
-  mod_time_epoch: number;
-  file_count: number;
-}
-
-// State
+// Get store
+const directoryStore = useDirectoryStore();
 const searchTerm = ref("");
-const directoryData = ref<DirectoryNode[]>([]);
-const baseUrl = ref("https://addlidar-potree-dev.epfl.ch");
-const hasData = ref(false);
 
-// Compute unique mission names from the paths
-const missions = computed(() => {
-  const missionSet = new Set<string>();
-  directoryData.value.forEach((item) => {
-    const pathParts = item.path.split("/");
-    if (pathParts.length > 1 && pathParts[1]) {
-      missionSet.add(pathParts[1]);
-    }
-  });
-  return Array.from(missionSet).sort();
-});
+// Computed properties from store
+const directoryData = computed(() => directoryStore.directoryData);
+const isLoading = computed(() => directoryStore.isLoading);
+const error = computed(() => directoryStore.error);
+const activeMission = computed(() => directoryStore.activeMission);
 
-// Filter missions based on search term
-const filteredMissions = computed(() => {
-  if (!searchTerm.value) {
-    return missions.value;
+// Filter files based on search term
+const filteredFiles = computed(() => {
+  if (!directoryData.value.length) {
+    return [];
   }
 
-  const term = searchTerm.value.toLowerCase();
+  let files = directoryData.value;
 
-  // Include mission if mission name matches or any of its files match
-  return missions.value.filter((mission) => {
-    // Check if mission name matches search
-    if (mission.toLowerCase().includes(term)) {
-      return true;
-    }
-
-    // Check if any file in this mission matches search
-    const filesInMission = getFilesForMission(mission);
-    return filesInMission.some(
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase();
+    files = files.filter(
       (item) =>
-        getNodeLabel(item.path).toLowerCase().includes(term) ||
-        item.path.toLowerCase().includes(term)
+        getFolderName(item.folder_path).toLowerCase().includes(term) ||
+        item.folder_path.toLowerCase().includes(term)
     );
+  }
+
+  // Sort by folder name
+  return files.sort((a, b) => {
+    const aName = getFolderName(a.folder_path);
+    const bName = getFolderName(b.folder_path);
+    return aName.localeCompare(bName);
   });
 });
-
-// Get files for a specific mission
-function getFilesForMission(mission: string) {
-  const filtered = directoryData.value.filter((item) => {
-    const pathParts = item.path.split("/");
-    return pathParts.length > 1 && pathParts[1] === mission;
-  });
-
-  // Sort by filename (last part of path)
-  return filtered.sort((a, b) => {
-    const aLabel = getNodeLabel(a.path);
-    const bLabel = getNodeLabel(b.path);
-    return aLabel.localeCompare(bLabel);
-  });
-}
 
 // Format size to human-readable
 function formatSize(sizeKb: number): string {
+  if (sizeKb === 0) {
+    return "0 KB";
+  }
   if (sizeKb < 1024) {
     return `${sizeKb} KB`;
   } else if (sizeKb < 1024 * 1024) {
@@ -162,35 +144,53 @@ function formatSize(sizeKb: number): string {
   }
 }
 
-// Extract the last part of the path for display
-function getNodeLabel(path: string): string {
+// Format date to human-readable
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "No date";
+
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+// Extract the folder name from the path
+function getFolderName(path: string): string {
   const parts = path.split("/");
   return parts[parts.length - 1] || path;
 }
 
-// Function to initiate direct download
-function downloadDirectory(path: string): void {
-  // Create the download URL by combining baseUrl with the path
-  // Remove the leading slash from path if present
-  const cleanPath = path.startsWith("/") ? path.substring(1) : path;
-  const downloadUrl = `${baseUrl.value}/static/${cleanPath}`;
+// Function to initiate archive download
+function downloadArchive(archivePath: string | null): void {
+  if (!archivePath) {
+    console.error("Archive path is not available");
+    return;
+  }
 
-  // Open in new tab or trigger download
+  const downloadUrl = directoryStore.getDownloadUrl(archivePath);
   window.open(downloadUrl, "_blank");
 }
 
-// Load directory data on component mount
-onMounted(() => {
-  // Load the directory metadata
-  directoryData.value = directoryMetadata as DirectoryNode[];
-  hasData.value = true;
-
-  // In production, get the actual base URL from the environment or config
-  if (import.meta.env.VITE_API_BASE_URL) {
-    baseUrl.value = import.meta.env.VITE_API_BASE_URL;
-  }
-  // Otherwise use the deployment URL
-});
+// Watch for active mission changes and fetch data if needed
+watch(
+  () => activeMission.value,
+  (newMission) => {
+    if (
+      newMission &&
+      (!directoryData.value.length ||
+        directoryData.value[0]?.folder_path?.split("/")[0] !== newMission)
+    ) {
+      directoryStore.fetchAllDirectoryData();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -205,10 +205,5 @@ onMounted(() => {
 
 .has-files {
   background-color: rgba(0, 0, 0, 0.03);
-}
-
-.q-list {
-  max-height: 400px;
-  overflow-y: auto;
 }
 </style>
