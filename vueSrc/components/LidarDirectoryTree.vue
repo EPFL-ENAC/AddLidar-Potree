@@ -1,9 +1,8 @@
 <template>
   <div class="directory-tree-container">
-    <div class="text-h6 q-pb-md">Lidar Files</div>
-
     <!-- Search filter -->
     <q-input
+      v-if="filteredFiles.length > 10"
       v-model="searchTerm"
       outlined
       dense

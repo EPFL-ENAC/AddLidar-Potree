@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, markRaw } from "vue";
 
 export const usePointCloudStore = defineStore("pointCloud", () => {
   // State as refs
@@ -23,12 +23,12 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   const clipVolume = ref<any>(null);
 
   function setClipVolume(volume: any) {
-    clipVolume.value = volume;
+    volumeTool.value = markRaw(tool);
   }
 
   function setVolumeTool(tool: any) {
     console.log("setVolumeTool", tool);
-    volumeTool.value = tool;
+    volumeTool.value = markRaw(tool);
   }
 
   // Methods to update clip properties (maintains reactivity)
@@ -60,8 +60,6 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   function setActiveAttribute(attributeName: string) {
     activeAttribute.value = attributeName;
 
-    // You might want to reset or adjust filter ranges when attribute changes
-    // based on the new attribute's typical value ranges
     resetFilterRange();
   }
 
@@ -123,6 +121,6 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     setPointcloudId,
     setErrorMessage,
     setFilterRange,
-    resetFilterRange,
+    // resetFilterRange,
   };
 });

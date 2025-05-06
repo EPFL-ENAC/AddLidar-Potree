@@ -79,7 +79,6 @@ export const useDirectoryStore = defineStore("directory", () => {
       }
 
       const { data } = await response.json();
-      debugger;
       return data as DirectoryNode[];
     } catch (err) {
       console.error(`Error fetching data for mission ${missionName}:`, err);

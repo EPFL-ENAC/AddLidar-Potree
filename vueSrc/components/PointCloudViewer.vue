@@ -16,11 +16,13 @@
 <script setup>
 // Import Three.js and Potree
 import { usePointCloudStore } from "@/stores/pointcloud";
-import { ref, onMounted, watch } from "vue";
+import { useDirectoryStore } from "@/stores/directoryStore";
+import { ref, onMounted, watch, computed } from "vue";
 import ErrorMessage from "./ErrorMessage.vue";
-import ColorVariableSelector from "./ColorVariableSelector.vue";
 
-const pointcloudId = new URLSearchParams(window.location.search).get("id");
+// Use directory store to get active mission
+const directoryStore = useDirectoryStore();
+const pointcloudId = computed(() => directoryStore.activeMission);
 const errorMessage = ref("");
 const pointcloudLoaded = ref(false);
 
@@ -58,11 +60,71 @@ watch(
   }
 );
 
+// Watch for changes in the active mission
+watch(
+  () => pointcloudId.value,
+  (newId) => {
+    if (newId && window.viewer) {
+      loadPointCloud(newId);
+    }
+  }
+);
+
+function loadPointCloud(id) {
+  try {
+    const pointCloudUrl = `${directoryStore.staticBasePath}/Potree/${id}/metadata.json`;
+    console.log("Loading point cloud from:", pointCloudUrl);
+
+    // Load point cloud
+    Potree.loadPointCloud(pointCloudUrl)
+      .then((e) => {
+        console.log("point cloud loaded", e);
+        const pointcloud = e.pointcloud;
+        const material = pointcloud.material;
+        // console.log("Point cloud material", pointcloudStore.activeAttribute);
+        material.activeAttributeName = "intensity";
+        material.minSize = 1;
+        material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+
+        // Clear existing point clouds if any
+        if (window.viewer.scene.pointclouds.length > 0) {
+          for (
+            let i = window.viewer.scene.pointclouds.length - 1;
+            i >= 0;
+            i--
+          ) {
+            window.viewer.scene.removePointCloud(
+              window.viewer.scene.pointclouds[i]
+            );
+          }
+        }
+
+        // Add new pointcloud to the viewer scene
+        window.viewer.scene.addPointCloud(pointcloud);
+        window.viewer.fitToScreen();
+
+        // Mark pointcloud as loaded
+        pointcloudLoaded.value = true;
+        errorMessage.value = ""; // Clear any previous errors
+      })
+      .catch((err) => {
+        console.error(err);
+        showError(`Failed to load point cloud: ${err.message}`);
+      });
+  } catch (err) {
+    showError(`Error setting up point cloud: ${err.message}`);
+    console.error(err);
+  }
+}
+
 onMounted(() => {
-  console.log("Point cloud mounted", pointcloudId);
-  if (!pointcloudId) {
+  console.log(
+    "Point cloud viewer mounted, active mission:",
+    pointcloudId.value
+  );
+  if (!pointcloudId.value) {
     showError(
-      'No point cloud id specified. Please provide a valid "id" query parameter. <a href="/?id=0002_Val_dArpette">Here\'s an example</a>'
+      'No mission selected. Please select a mission or provide a valid "id" query parameter.'
     );
     return;
   }
@@ -80,41 +142,8 @@ onMounted(() => {
 
   viewer.loadGUI(() => {
     viewer.setLanguage("en");
+    // Once GUI is loaded, load the point cloud
+    loadPointCloud(pointcloudId.value);
   });
-  try {
-    const pointCloudUrl = new URL(
-      `https://addlidar-potree-dev.epfl.ch/static/Potree/${pointcloudId}/metadata.json`
-    );
-    console.log("pointCloudUrl", pointCloudUrl.href);
-
-    // Load point cloud (assumes Potree.loadPointCloud returns a promise)
-    Potree.loadPointCloud(pointCloudUrl.href)
-      .then((e) => {
-        console.log("point cloud loaded", e);
-        const pointcloud = e.pointcloud;
-        const material = pointcloud.material;
-        material.activeAttributeName = pointcloudStore.activeAttribute;
-        material.minSize = 1;
-        material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-        // Add pointcloud to the viewer scene
-        window.viewer.scene.addPointCloud(pointcloud);
-        window.viewer.fitToScreen();
-
-        // Mark pointcloud as loaded
-        pointcloudLoaded.value = true;
-      })
-      .catch((err) => {
-        console.error(err);
-        showError("Failed to load point cloud from the provided URL.");
-      });
-  } catch (err) {
-    showError("The provided URL is not valid. Please provide a valid URL.");
-    console.error(err);
-  }
 });
-
-// Provide the global setActiveAttributeName function for backward compatibility
-window.setActiveAttributeName = function (name) {
-  onAttributeChange(name);
-};
 </script>

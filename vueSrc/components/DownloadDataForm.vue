@@ -1,222 +1,49 @@
 <template>
-  <q-card class="q-pa-md download-card column justify-around" bordered>
-    <q-card-section>
-      <div class="text-h6 q-pb-md">Download Data Options:</div>
-      <q-form class="q-gutter-md" @submit.prevent="onSubmit">
-        <q-select
-          outlined
-          label="Format"
-          v-model="format"
-          :options="formatOptions"
-        />
-        <q-select
-          outlined
-          label="EPSG Code"
-          :options="epsgOptions"
-          v-model="epsg"
-          placeholder="EPSG Code (optional)"
-        />
-        <clip-volume> </clip-volume>
-
-        <q-input
-          outlined
-          type="number"
-          label="Number of points"
-          v-model="number"
-          placeholder="Number of points (optional)"
-        />
-
-        <q-btn
-          label="Generate processing request"
-          class="100"
-          size="md"
-          outline
-          type="submit"
-          color="primary"
-          :loading="processing"
-        >
-          <template v-slot:loading>
-            <q-spinner-gears class="on-left" />
-            Starting job...
-          </template>
-        </q-btn>
-      </q-form>
+  <q-card class="q-pa-md download-card" bordered>
+    <!-- Navigation tabs -->
+    <q-card-section class="q-pb-none tab-header">
+      <q-tabs
+        v-model="activeTab"
+        dense
+        class="text-grey"
+        active-color="primary"
+        indicator-color="primary"
+        align="justify"
+        narrow-indicator
+      >
+        <q-tab name="static" icon="folder_zip" label="Static Files" />
+        <q-tab name="process" icon="settings" label="Process & Download" />
+      </q-tabs>
+      <q-separator />
     </q-card-section>
 
-    <!-- Status and progress section -->
-    <q-card-section v-if="currentJob">
-      <div class="text-h6">Job Status</div>
-      <div class="q-mt-sm">
-        <div class="row items-center">
-          <div class="col">
-            <div><strong>Job ID:</strong> {{ currentJob.job_name }}</div>
-            <div><strong>Status:</strong> {{ jobStatus }}</div>
-            <div v-if="jobProgress > 0">
-              <strong>Progress:</strong>
-              {{ Math.floor(jobProgress * 100) }}%
-            </div>
-          </div>
-          <div class="col-auto">
-            <!-- Show checkmark when job is complete -->
-            <q-icon
-              v-if="
-                jobStatus === 'Complete' || jobStatus === 'SuccessCriteriaMet'
-              "
-              name="check_circle"
-              color="primary"
-              size="md"
-              class="q-ml-md"
-            />
-            <!-- Show error icon when there's an error -->
-            <q-icon
-              v-else-if="jobStatus === 'Error'"
-              name="error"
-              color="negative"
-              size="md"
-              class="q-ml-md"
-            />
-            <!-- Show indeterminate progress otherwise -->
-            <q-circular-progress
-              v-else
-              size="md"
-              indeterminate
-              color="secondary"
-              track-color="grey-3"
-              class="q-ml-md"
-            />
-          </div>
-        </div>
+    <!-- Tab panels -->
+    <q-tab-panels v-model="activeTab" animated class="tab-content">
+      <!-- Static Files Panel -->
+      <q-tab-panel name="static" class="p-0">
+        <lidar-directory-tree />
+      </q-tab-panel>
 
-        <q-btn
-          v-if="jobStatus === 'Complete' || jobStatus === 'SuccessCriteriaMet'"
-          label="Download File"
-          outline
-          color="primary"
-          class="q-mt-md full-width"
-          @click="downloadResult"
-        />
-
-        <q-btn
-          v-else-if="jobStatus !== 'Error'"
-          label="Check Status"
-          color="secondary"
-          outline
-          class="q-mt-md full-width"
-          @click="checkJobStatus"
-          :loading="checkingStatus"
-        />
-      </div>
-    </q-card-section>
-
-    <!-- Status log (can be expanded/collapsed) -->
-    <q-card-section v-if="statusLogs.length">
-      <q-expansion-item label="Status Log" header-class="text-primary">
-        <q-card>
-          <q-card-section class="status-log q-pa-sm">
-            <div
-              v-for="(log, index) in statusLogs"
-              :key="index"
-              class="log-item"
-            >
-              <span class="text-caption">{{ log.time }}:</span>
-              {{ log.message }}
-            </div>
-          </q-card-section>
-        </q-card>
-      </q-expansion-item>
-    </q-card-section>
-
-    <!-- LiDAR Directory Tree section -->
-    <q-separator class="q-my-md" />
-    <q-card-section class="lidar-files-section">
-      <lidar-directory-tree />
-    </q-card-section>
+      <!-- Process & Download Panel -->
+      <q-tab-panel name="process" class="p-0">
+        <process-download-panel />
+      </q-tab-panel>
+    </q-tab-panels>
 
     <q-separator class="q-my-md" />
-    <q-card-section>
+    <q-card-section class="color-selector-section">
       <color-variable-selector />
     </q-card-section>
   </q-card>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
-import ClipVolume from "@/components/ClipVolume.vue";
 import LidarDirectoryTree from "@/components/LidarDirectoryTree.vue";
-import { ref, onBeforeUnmount } from "vue";
-import { formatOptions, epsgOptions, type SelectOption } from "@/utils/api";
-import useDownloadService from "@/utils/useDownloadService";
-import type { JobParams } from "@/utils/useDownloadService";
-import { usePointCloudStore } from "@/stores/pointcloud";
+import ProcessDownloadPanel from "@/components/ProcessDownloadPanel.vue";
 
-const store = usePointCloudStore();
-
-// Keep the entire service instance available
-const downloadService = useDownloadService();
-
-// Extract frequently used properties
-const {
-  processing,
-  currentJob,
-  closeConnection,
-  jobStatus,
-  jobProgress,
-  statusLogs,
-  startJob,
-  downloadResult,
-  checkJobStatus,
-  checkingStatus,
-} = downloadService;
-
-const { clipPosition, clipRotation, clipScale } = store;
-
-// Form values
-const type = ref("traj");
-const format = ref<SelectOption | undefined>(undefined);
-const epsg = ref<string | undefined>(undefined);
-const density = ref("");
-const area = ref("");
-const number = ref(1000);
-
-function clipCoorToString(coor: { x: number; y: number; z: number }) {
-  return `${coor.x},${coor.y},${coor.z}`;
-}
-
-// Function to handle form submission
-function onSubmit(): void {
-  // Create params object from form values
-  const params: JobParams = {
-    file_path:
-      "/0001_Mission_Root/02_LAS_PCD/all_grouped_high_veg_10th_point.las", // Default path
-    format: format.value ? format.value.value : undefined,
-    number: parseInt(number.value as any),
-  };
-
-  // Add optional parameters if they exist
-  if (epsg.value) params.outcrs = epsg.value;
-  if (density.value) params.density = density.value;
-  // if (store.clipVolume)
-  //   params.roi = `(${clipCoorToString(clipPosition)},${clipCoorToString(
-  //     clipRotation
-  //   )},${clipCoorToString(clipScale)})`;
-
-  if (store.clipVolume)
-    params.roi = [
-      ...Object.values(clipPosition),
-      ...Object.values(clipScale),
-      ...Object.values(clipRotation),
-    ];
-
-  console.log("ROI", params.roi);
-  // If type is metadata, add special flag
-  if (type.value === "metadata") params.remove_all_attributes = true;
-
-  // Call the startJob function with our params
-  startJob(params);
-}
-
-// Clean up WebSocket connection when component is destroyed
-onBeforeUnmount(closeConnection);
+const activeTab = ref("static");
 </script>
 
 <style scoped>
@@ -232,27 +59,33 @@ onBeforeUnmount(closeConnection);
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Hide overflow at container level */
+  padding: 0; /* Remove padding to maximize space */
+}
+
+.tab-header {
+  flex: 0 0 auto; /* Don't grow or shrink */
+  padding: 1rem 1rem 0 1rem;
+}
+
+.tab-content {
+  flex: 1 1 auto; /* Grow and shrink as needed */
+  overflow-y: auto; /* Enable scrolling for tab content */
+  padding: 0 1rem;
+}
+
+.color-selector-section {
+  flex: 0 0 auto; /* Don't grow or shrink */
+  padding: 1rem;
+}
+
+.p-0 {
+  padding: 0;
+}
+
+/* Ensure tab panels themselves take full height of their container */
+:deep(.q-tab-panel) {
+  height: 100%;
   overflow-y: auto;
-}
-
-.status-log {
-  max-height: 200px;
-  overflow-y: auto;
-  background-color: #f5f5f5;
-  font-family: monospace;
-  font-size: 0.8rem;
-}
-
-.log-item {
-  padding: 2px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.lidar-files-section {
-  padding-top: 0;
 }
 </style>

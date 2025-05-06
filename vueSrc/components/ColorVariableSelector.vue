@@ -20,6 +20,7 @@ const store = usePointCloudStore();
 // Setup attribute options
 const attributeOptions = [
   { label: "RGBA", value: "rgba" },
+  { label: "RGB", value: "rgb" },
   { label: "Classification", value: "classification" },
   { label: "Intensity", value: "intensity" },
   { label: "Elevation", value: "elevation" },
@@ -32,7 +33,9 @@ const attributeOptions = [
 // Use a computed property with getter and setter to sync with store
 const selectedAttribute = computed({
   get: () => store.activeAttribute,
-  set: (value) => store.setActiveAttribute(value),
+  set: (value) => {
+    store.setActiveAttribute(value);
+  },
 });
 </script>
 
