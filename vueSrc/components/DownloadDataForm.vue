@@ -61,6 +61,7 @@ const activeTab = ref("static");
   flex-direction: column;
   overflow: hidden; /* Hide overflow at container level */
   padding: 0; /* Remove padding to maximize space */
+  gap: 4rem;
 }
 
 .tab-header {
