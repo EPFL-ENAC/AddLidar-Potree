@@ -82,7 +82,7 @@ function loadPointCloud(id) {
         const pointcloud = e.pointcloud;
         const material = pointcloud.material;
         // console.log("Point cloud material", pointcloudStore.activeAttribute);
-        material.activeAttributeName = "intensity";
+        material.activeAttributeName = pointcloudStore.activeAttribute;
         material.minSize = 1;
         material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
 
