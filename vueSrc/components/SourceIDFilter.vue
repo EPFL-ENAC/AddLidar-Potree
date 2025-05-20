@@ -34,6 +34,7 @@
             <q-checkbox
               v-for="id in sourceIDs"
               :key="id"
+              dense
               v-model="selectedIDs[id]"
               :label="`ID ${id}`"
               @update:model-value="updateSelectedIDs"
