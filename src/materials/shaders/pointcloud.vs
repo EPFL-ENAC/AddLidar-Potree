@@ -83,6 +83,7 @@ uniform vec2 intensityRange;
 uniform vec2 uFilterReturnNumberRange;
 uniform vec2 uFilterNumberOfReturnsRange;
 uniform vec2 uFilterPointSourceIDClipRange;
+uniform int uFilterPointSourceIDSubset[256];
 uniform vec2 uFilterGPSTimeClipRange;
 uniform float uGpsScale;
 uniform float uGpsOffset;
@@ -787,6 +788,20 @@ void doClipping(){
 			
 			return;
 		}
+	}
+	#endif
+
+	#if defined(clip_point_source_id_subset_enabled)
+	{ // point source id subset filter
+	int psID = int(pointSourceID);
+	// Make sure the ID is within our array bounds
+	if (psID >= 0 && psID < 1024) {
+		// If this ID is not in our subset (value is 0), discard the point
+		if (uFilterPointSourceIDSubset[psID] == 0) {
+		gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
+		return;
+		}
+	}
 	}
 	#endif
 

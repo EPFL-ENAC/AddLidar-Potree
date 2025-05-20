@@ -33,6 +33,8 @@
     <q-separator class="q-my-md" />
     <q-card-section class="color-selector-section">
       <color-variable-selector />
+      <q-separator class="q-my-md" />
+      <source-i-d-filter />
     </q-card-section>
   </q-card>
 </template>
@@ -42,6 +44,7 @@ import { ref } from "vue";
 import ColorVariableSelector from "@/components/ColorVariableSelector.vue";
 import LidarDirectoryTree from "@/components/LidarDirectoryTree.vue";
 import ProcessDownloadPanel from "@/components/ProcessDownloadPanel.vue";
+import SourceIDFilter from "@/components/SourceIDFilter.vue";
 
 const activeTab = ref("static");
 </script>

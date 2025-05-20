@@ -60,6 +60,36 @@ watch(
   }
 );
 
+// Watch for changes in selected source IDs
+watch(
+  () => pointcloudStore.selectedSourceIDs,
+  (selectedIDs) => {
+    if (!window.viewer || !window.viewer.scene.pointclouds.length) return;
+
+    console.log("Source ID filter changed:", selectedIDs);
+
+    try {
+      if (selectedIDs.length > 0) {
+        const viewer = window.viewer;
+        debugger;
+        // If all IDs are selected, clear the filter
+        if (selectedIDs.length === pointcloudStore.availableSourceIDs.length) {
+          window.viewer.clearFilterPointSourceIDSubset();
+        } else {
+          // Otherwise set the filter to show only selected IDs
+          window.viewer.setFilterPointSourceIDSubset(selectedIDs);
+        }
+      } else {
+        // If none are selected, we could either hide all points or show all points
+        // Here we choose to hide all by setting an empty array
+        window.viewer.setFilterPointSourceIDSubset([]);
+      }
+    } catch (error) {
+      console.error("Error applying point source ID filter:", error);
+    }
+  }
+);
+
 // Watch for changes in the active mission
 watch(
   () => pointcloudId.value,

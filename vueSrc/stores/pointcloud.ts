@@ -15,6 +15,10 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   const filterMin = ref(0);
   const filterMax = ref(100);
 
+  // Source ID filtering
+  const selectedSourceIDs = ref<number[]>([]);
+  const availableSourceIDs = ref<number[]>([]);
+
   const clipPosition = ref({ x: 0, y: 0, z: 0 });
   const clipRotation = ref({ x: 0, y: 0, z: 0 });
   const clipScale = ref({ x: 1, y: 1, z: 1 });
@@ -22,12 +26,25 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   const clipVolume = ref<any>(null);
 
   function setClipVolume(volume: any) {
-    volumeTool.value = markRaw(tool);
+    clipVolume.value = volume;
   }
 
   function setVolumeTool(tool: any) {
     console.log("setVolumeTool", tool);
     volumeTool.value = markRaw(tool);
+  }
+
+  // Source ID filtering methods
+  function setSelectedSourceIDs(ids: number[]) {
+    selectedSourceIDs.value = ids;
+  }
+
+  function setAvailableSourceIDs(ids: number[]) {
+    availableSourceIDs.value = ids;
+  }
+
+  function clearSourceIDFilter() {
+    selectedSourceIDs.value = [];
   }
 
   // Methods to update clip properties (maintains reactivity)
@@ -104,6 +121,9 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
 
     volumeTool,
 
+    selectedSourceIDs,
+    availableSourceIDs,
+
     // Actions
     setClipVolume,
     resetClipVolume,
@@ -115,5 +135,10 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     setErrorMessage,
     setFilterRange,
     // resetFilterRange,
+
+    // Source ID filtering
+    setSelectedSourceIDs,
+    setAvailableSourceIDs,
+    clearSourceIDFilter,
   };
 });
