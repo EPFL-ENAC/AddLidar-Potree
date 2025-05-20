@@ -134,7 +134,7 @@ onMounted(() => {
   );
   viewer.setEDLEnabled(true);
   viewer.setFOV(40);
-  viewer.setPointBudget(import.meta.env.dev ? 100000 : 1000000);
+  viewer.setPointBudget(50000000);
   viewer.loadSettingsFromURL();
   viewer.setDescription("");
   console.log(viewer);

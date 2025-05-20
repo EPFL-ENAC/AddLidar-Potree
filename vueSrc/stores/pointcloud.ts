@@ -5,7 +5,6 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
   // State as refs
   const activeAttribute = ref("intensity");
   const pointcloudLoaded = ref(false);
-  const pointcloudId = ref<string | null>(null);
   const errorMessage = ref("");
 
   const volumeTool = ref<
@@ -85,10 +84,6 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     }
   }
 
-  function setPointcloudId(id: string | null) {
-    pointcloudId.value = id;
-  }
-
   function setErrorMessage(message: string) {
     errorMessage.value = message;
   }
@@ -98,7 +93,6 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     // State
     activeAttribute,
     pointcloudLoaded,
-    pointcloudId,
     errorMessage,
     filterMin,
     filterMax,
@@ -118,7 +112,6 @@ export const usePointCloudStore = defineStore("pointCloud", () => {
     setClipRotation,
     setClipScale,
     setActiveAttribute,
-    setPointcloudId,
     setErrorMessage,
     setFilterRange,
     // resetFilterRange,

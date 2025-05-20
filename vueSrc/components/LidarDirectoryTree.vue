@@ -2,7 +2,6 @@
   <div class="directory-tree-container">
     <!-- Search filter -->
     <q-input
-      v-if="filteredFiles.length > 10"
       v-model="searchTerm"
       outlined
       dense

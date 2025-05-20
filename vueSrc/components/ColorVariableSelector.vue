@@ -13,14 +13,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { usePointCloudStore } from "@/stores/pointcloud";
-
+import { useDirectoryStore } from "@/stores/directoryStore";
 // Use the store
 const store = usePointCloudStore();
+const directoryStore = useDirectoryStore();
 
 // Setup attribute options
-const attributeOptions = [
+const defaultAttributes = [
   { label: "RGBA", value: "rgba" },
   { label: "RGB", value: "rgb" },
+  { label: "Line", value: "line" },
   { label: "Classification", value: "classification" },
   { label: "Intensity", value: "intensity" },
   { label: "Elevation", value: "elevation" },
@@ -29,6 +31,24 @@ const attributeOptions = [
   { label: "Distance", value: "Distance" },
   { label: "GPS Time", value: "gps-time" },
 ];
+
+const attributeOptions = computed(() => {
+  if (
+    !directoryStore.pointcloudMetadata ||
+    !directoryStore.pointcloudMetadata.attributes
+  ) {
+    return defaultAttributes;
+  }
+  return directoryStore.pointcloudMetadata.attributes.map(
+    (attribute: { name: string }) => {
+      console.log("Attribute", attribute.name);
+      return {
+        label: attribute.name,
+        value: attribute.name,
+      };
+    }
+  );
+});
 
 // Use a computed property with getter and setter to sync with store
 const selectedAttribute = computed({

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 export interface DirectoryNode {
   folder_path: string;
@@ -14,6 +14,7 @@ export const useDirectoryStore = defineStore("directory", () => {
   const directoryData = ref<DirectoryNode[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const pointcloudMetadata = ref<any>(null);
 
   // For same-domain deployment, we can use relative URLs
   const apiBasePath = ref("/api");
@@ -94,8 +95,48 @@ export const useDirectoryStore = defineStore("directory", () => {
     return `${staticBasePath.value}/${pathWithoutZips}`;
   }
 
+  // Fetch metadata for a specific poincloud
+  async function fetchPointcloudMetadata(missionName: string) {
+    try {
+      const response = await fetch(
+        `${staticBasePath.value}/Potree/${missionName}/metadata.json`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error(`Error fetching data for mission ${missionName}:`, err);
+      throw err;
+    }
+  }
+
+  watch(
+    () => activeMission.value,
+    async (newMission) => {
+      if (newMission) {
+        try {
+          const metadata = await fetchPointcloudMetadata(newMission);
+          pointcloudMetadata.value = metadata;
+          console.log(`Fetched metadata for mission ${newMission}:`, metadata);
+        } catch (err) {
+          error.value = err instanceof Error ? err.message : "Unknown error";
+          console.error(
+            `Error fetching metadata for mission ${newMission}:`,
+            err
+          );
+        }
+      } else {
+        pointcloudMetadata.value = null;
+      }
+    },
+    { immediate: true }
+  );
+
   return {
     directoryData,
+    pointcloudMetadata,
     isLoading,
     error,
     apiBasePath,
