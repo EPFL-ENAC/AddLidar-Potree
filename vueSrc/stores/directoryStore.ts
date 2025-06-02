@@ -2,12 +2,17 @@ import { defineStore } from "pinia";
 import { ref, watch } from "vue";
 
 export interface DirectoryNode {
-  folder_path: string;
-  folder_size_kb: number;
-  folder_mod_time: string;
-  folder_mod_time_epoch: number;
-  folder_file_count: number;
-  archive_path: string;
+  folder_key: string;
+  mission_key: string;
+  fp: string;
+  output_path: string;
+  size_kb: number;
+  file_count: number;
+  last_checked: number;
+  last_processed: number | null;
+  processing_time: number | null;
+  processing_status: string | null;
+  error_message: string | null;
 }
 
 export const useDirectoryStore = defineStore("directory", () => {
@@ -53,6 +58,7 @@ export const useDirectoryStore = defineStore("directory", () => {
 
       try {
         const data = await fetchMissionData(activeMission.value);
+        console.info(`Fetched data for mission ${activeMission.value}:`, data);
         directoryData.value = data;
       } catch (err) {
         error.value = err instanceof Error ? err.message : "Unknown error";

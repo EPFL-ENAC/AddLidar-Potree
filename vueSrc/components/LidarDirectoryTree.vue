@@ -42,23 +42,23 @@
 
       <q-item
         v-for="item in filteredFiles"
-        :key="item.folder_path"
+        :key="item.folder_key"
         clickable
-        :class="{ 'has-files': item.folder_file_count > 0 }"
+        :class="{ 'has-files': item.file_count > 0 }"
       >
         <q-item-section>
-          <q-item-label>{{ getFolderName(item.folder_path) }}</q-item-label>
+          <q-item-label>{{ getFolderName(item.folder_key) }}</q-item-label>
           <q-item-label caption>
-            {{ formatSize(item.folder_size_kb) }} ·
-            {{ formatDate(item.folder_mod_time) }}
+            {{ formatSize(item.size_kb) }} ·
+            {{ formatDate(item.last_processed) }}
             <q-badge
-              v-if="item.folder_file_count > 0"
+              v-if="item.file_count > 0"
               color="green"
               text-color="white"
               class="q-ml-xs"
             >
-              {{ item.folder_file_count }}
-              {{ item.folder_file_count === 1 ? "file" : "files" }}
+              {{ item.file_count }}
+              {{ item.file_count === 1 ? "file" : "files" }}
             </q-badge>
             <q-badge v-else color="grey" text-color="white" class="q-ml-xs"
               >Empty</q-badge
@@ -66,14 +66,14 @@
           </q-item-label>
         </q-item-section>
 
-        <q-item-section side v-if="item.folder_file_count > 0">
+        <q-item-section side v-if="item.file_count > 0">
           <q-btn
             flat
             round
             dense
             icon="download"
             color="primary"
-            @click="downloadArchive(item.archive_path)"
+            @click="downloadArchive(item.output_path)"
           >
             <q-tooltip>Download archive</q-tooltip>
           </q-btn>
@@ -115,15 +115,15 @@ const filteredFiles = computed(() => {
     const term = searchTerm.value.toLowerCase();
     files = files.filter(
       (item) =>
-        getFolderName(item.folder_path).toLowerCase().includes(term) ||
-        item.folder_path.toLowerCase().includes(term)
+        getFolderName(item.folder_key).toLowerCase().includes(term) ||
+        item.folder_key.toLowerCase().includes(term)
     );
   }
 
   // Sort by folder name
   return files.sort((a, b) => {
-    const aName = getFolderName(a.folder_path);
-    const bName = getFolderName(b.folder_path);
+    const aName = getFolderName(a.folder_key);
+    const bName = getFolderName(b.folder_key);
     return aName.localeCompare(bName);
   });
 });
@@ -143,7 +143,7 @@ function formatSize(sizeKb: number): string {
 }
 
 // Format date to human-readable
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: number | null): string {
   if (!dateStr) return "No date";
 
   try {
@@ -154,12 +154,13 @@ function formatDate(dateStr: string | null): string {
       day: "numeric",
     });
   } catch (e) {
-    return dateStr;
+    return new Date(dateStr).toLocaleDateString();
   }
 }
 
 // Extract the folder name from the path
 function getFolderName(path: string): string {
+  console.info("Extracting folder name from path:", path);
   const parts = path.split("/");
   return parts[parts.length - 1] || path;
 }
@@ -182,7 +183,7 @@ watch(
     if (
       newMission &&
       (!directoryData.value.length ||
-        directoryData.value[0]?.folder_path?.split("/")[0] !== newMission)
+        directoryData.value[0]?.folder_key?.split("/")[0] !== newMission)
     ) {
       directoryStore.fetchAllDirectoryData();
     }
